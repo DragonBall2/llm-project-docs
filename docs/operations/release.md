@@ -7,7 +7,7 @@ sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 70f1eb5
+verified_at: 4c96848
 ---
 
 # Release
@@ -19,7 +19,8 @@ it has been pushed and the plugin updated. This is the sequence that actually wo
 
 1. Run `python3 tests/test_roundtrip.py`. It is the whole test suite; see [[testing]]
 2. Bump the version in **both** manifests: `plugin/.claude-plugin/plugin.json` and
-   `.claude-plugin/marketplace.json`
+   `.claude-plugin/marketplace.json`. If the linter's behaviour changed, also bump
+   `LINT_VERSION` inside it, or repositories with the old copy are never told
 3. Commit and push `main`. CI runs the round trip on Python 3.10 and 3.12
 4. Refresh the marketplace, then update the plugin, then restart the session:
 
@@ -56,7 +57,9 @@ the public API works without it for checking CI.
 
 `/mnt/d/yj/Projects/gwiroman/.claude/scripts/docs-lint.py` is a copy of the linter with
 Korean output strings and identical logic, synced by hand. After any change to the linter,
-diff against it and port the change. In sync as of 2026-09-24 (equal line count).
+diff against it and port the change, including the `LINT_VERSION` bump: the hook on that
+repository compares the number, and a fork left behind would be told to re-copy the
+English original. In sync as of 2026-09-24 (equal line count).
 
 ## Repository git identity
 

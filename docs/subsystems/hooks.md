@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/hooks/
-verified_at: 0bd568f
+verified_at: 4c96848
 ---
 
 # Hooks
@@ -16,7 +16,7 @@ is nothing specific to say.
 
 | Event | Script | Sees | Says |
 |---|---|---|---|
-| SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first |
+| SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first; an outdated linter copy |
 | PostToolUse, `if: Bash(git commit *)` | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
 | PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ paragraphs of pages covering that file |
 

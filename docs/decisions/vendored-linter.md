@@ -6,7 +6,7 @@ updated: 2026-09-24
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
-verified_at: 9c0fca8
+verified_at: 4c96848
 ---
 
 # Decision: vendor the linter
@@ -39,8 +39,18 @@ release, and a manual install lives somewhere else entirely.
 - The hooks, which do run with `CLAUDE_PLUGIN_ROOT`, still call the repo's copy, so the
   repo's behaviour is the same whether or not the plugin is installed
 
-## What it costs
+## What it costs, and the patch for it
 
-A change to the linter reaches existing repositories only when someone re-copies it. The
-gwiroman fork is the one known copy that has diverged on purpose (Korean strings) and is
-synced by hand; see [[release]].
+A change to the linter reaches existing repositories only when someone re-copies it.
+Since 1.3.0 the linter carries `LINT_VERSION`; the SessionStart hook compares the repo's
+copy against the plugin's and prints one line with the re-copy command when they differ:
+
+```
+python3 "$(find ~/.claude/plugins -name scaffold.py -path '*project-docs*' | head -1)" --root . --lint-only
+```
+
+`--lint-only` overwrites the linter and nothing else. A copy with no `LINT_VERSION` at
+all, meaning anything scaffolded before 1.3.0, counts as outdated. The hook still does not
+copy anything itself: that file is in the repository's history and changes to it should be
+commits someone made on purpose. The gwiroman fork (Korean strings, same logic) carries
+the same number, so it stays silent while it is in sync; see [[release]].

@@ -7,7 +7,7 @@ sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 9c0fca8
+verified_at: 4c96848
 ---
 
 # scaffold.py
@@ -29,7 +29,8 @@ Given `--root`, `--name`, optional `--categories` and `--exclude`:
   (`plugin/scripts/scaffold.py:523`). Missing source is a hard error
 
 Existing files are left alone unless `--force`. `--dry-run` prints the plan.
-`--sha` overrides the baseline (default HEAD).
+`--sha` overrides the baseline (default HEAD). `--lint-only` re-copies the linter into an
+already scaffolded repository and touches nothing else; see [[vendored-linter]].
 
 ## Code is an exclude list
 
