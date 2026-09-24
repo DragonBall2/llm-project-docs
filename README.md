@@ -1,7 +1,7 @@
 # llm-project-docs
 
-A Claude Code plugin that turns a repository's `docs/` into a wiki an LLM maintains —
-and, more importantly, one it can tell is **out of date**.
+Documentation for a living codebase, kept in the repository, maintained by an LLM — and,
+crucially, one that can tell you **which pages have gone out of date**.
 
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
@@ -18,13 +18,13 @@ Then, in the repository you just set up:
 /docs-status   commits not reflected yet, stale pages, recent work
 ```
 
-## The problem it solves
+## The problem
 
 Documentation written by an LLM goes stale silently. Nothing in a Markdown file records
 which commit it was true for, so nobody can compute which page drifted — and a page that
-is confidently wrong is worse than no page.
+is confidently wrong is worse than no page at all.
 
-This plugin adds that missing piece and builds the workflow around it.
+Every page here carries the commit it was checked against:
 
 ```yaml
 ---
@@ -36,25 +36,48 @@ verified_at: a1b2c3d                    # the commit this page was checked again
 ---
 ```
 
-`/docs-sync` reads **only what changed since that sha**, instead of re-reading the
+`/docs-sync` reads **only what changed since that sha** instead of re-reading the
 codebase. `/docs-lint` computes, per page, whether the code it points at has moved.
 
-## Three design decisions
+## Pages point at code. They never copy it
 
-**Pages are categorised by access pattern, not by topic.**
+This is the decision everything else follows from.
+
+A page that embeds what the code said is a **snapshot**: the moment the code moves, the
+page is wrong and nothing says so. A page that *points* at `server/routes/content.js` and
+declares which commit it was checked against can be verified — by a script, mechanically,
+at any time.
+
+It changes what ends up written down. When you cannot restate the code, the sentences
+worth keeping are the ones you **cannot get by reading it**:
+
+> ⚠️ Env changes need `up -d`, not `restart` — `restart` reuses the container and never
+> re-injects `.env`.
+
+> ⚠️ The limiter's auto-levelling is **on by default** and raises output to the ceiling.
+> Left on, lowering the limiter made things *louder*.
+
+> ⚠️ `git show --name-only` escapes non-ASCII paths by default, so `grep '^docs/'`
+> silently misses them — and you conclude a commit did not touch the docs when it did.
+
+None of that is in the source. It is what someone learned at 3am, and it is exactly what
+the next person needs. Documentation that mirrors the code competes with the code and
+loses; documentation that records what the code cannot say is worth maintaining.
+
+So `sources` holds live paths, citations point at `file:line` rather than pasting
+snippets, and `raw/` explicitly refuses copies of code or of other documents.
+
+## Categorised by access pattern, not by topic
+
 *Exploratory* pages (`concepts/`, `architecture/`, `subsystems/`, `decisions/`) are read
-when you do not know where to look, so they are split finely and linked densely.
+when you do **not** know where to look, so they are split finely and linked densely.
 *Lookup* pages (`reference/`, `operations/`) are opened when you already know, so they
-stay as tables. Progressive disclosure only pays off in the first case — there is no
-reason to break a `SPEC.md` table apart.
+stay as tables.
 
-**Pages point at code; they do not copy it.**
-A copy is stale the moment the code moves, and nothing tells you. `sources` holds live
-paths, and the most valuable sentences end up being the ones you *cannot* get by reading
-the code: why a workaround exists, which verification method misses a bug, what broke at
-3am.
+Progressive disclosure only pays off in the first case. There is no reason to break a
+`SPEC.md` table apart.
 
-**What counts as "code" is an exclude list.**
+## "Code changed" is an exclude list
 
 ```
 code = the whole repository - { docs/ , .claude/ , CLAUDE.md }
@@ -62,8 +85,10 @@ code = the whole repository - { docs/ , .claude/ , CLAUDE.md }
 
 Docs and code share a repository, so editing only docs still moves `HEAD`. Without this
 filter, status keeps reporting "4 commits behind" when there is nothing to do — and then
-nobody trusts it. An exclude list also picks up new code directories automatically; an
-include list silently misses them.
+nobody trusts it again.
+
+An exclude list also picks up new code directories automatically. An include list
+silently misses them, and missing is the dangerous failure.
 
 ## stale vs unverified
 
@@ -87,8 +112,11 @@ pages legitimately have no code sources.
 - **Find contradictions between pages, or duplicated prose.** Those need reading. The
   linter is deliberately limited to what a script can decide
 - **Work without git.** `verified_at` is a commit sha
-- **Keep line-number citations honest.** The linter checks a cited line is inside the
+- **Keep line-number citations honest.** The linter checks that a cited line is inside the
   file, not that it is still the symbol you meant. Prefer citing symbol names
+- **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes
+  boilerplate; the contract in `docs/CLAUDE.md` is what the agent follows. Both scripts
+  are pure Python standard library
 
 ## Layout it creates
 
@@ -129,19 +157,29 @@ python plugin/scripts/scaffold.py --root /path/to/repo --name MyApp
 python /path/to/repo/.claude/scripts/docs-lint.py --root /path/to/repo
 ```
 
+## Tests
+
+```bash
+python tests/test_roundtrip.py
+```
+
+Scaffolds a throwaway git repository, runs the vendored linter from the path the
+generated command prints, and asserts that clean, stale, unverified and broken-link cases
+each produce the right result and exit code. No framework, no fixtures.
+
+## Scope
+
+One repository, described from the inside. If you need to compare several repositories
+against each other, that comparison wants its own place — but each repository's own
+description belongs in the repository, where it travels with the code and where the agent
+will actually open it.
+
 ## A caveat worth stating
 
 `docs/` naturally accumulates production hostnames, environment variable names and
 operational procedures. **Keep the repository private, and do not publish the wiki.**
-The plugin never records secret values — variable names at most — but the shape of your
+This never records secret values — variable names at most — but the shape of your
 infrastructure is itself information.
-
-## Related
-
-For a wiki that spans **several** repositories (comparing a port against its original,
-say), keep that comparison in a separate wiki and leave each repository's own description
-inside it. A sibling-directory wiki describing one repository will diverge from it, and
-the LLM tends not to open it.
 
 ## License
 
