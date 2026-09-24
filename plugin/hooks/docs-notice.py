@@ -26,11 +26,23 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
 
 VENDORED = Path(".claude") / "scripts" / "docs-lint.py"
+PLUGIN_LINT = Path(__file__).resolve().parent.parent / "scripts" / "lint.py"
+RECOPY = ("python3 \"$(find ~/.claude/plugins -name scaffold.py -path '*project-docs*' "
+          "| head -1)\" --root . --lint-only")
+
+
+def lint_version(path: Path) -> str:
+    try:
+        m = re.search(r'^LINT_VERSION = "([^"]*)"', path.read_text(encoding="utf-8"), re.M)
+        return m.group(1) if m else ""
+    except Exception:
+        return ""
 
 
 def main() -> int:
@@ -54,7 +66,11 @@ def main() -> int:
     pages = counts.get("stale_pages") or []
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
-    if not stale and not problems:
+    # The linter is vendored, so a fix to it reaches this repo only by re-copying.
+    # An old copy has no LINT_VERSION at all, which counts as "differs".
+    mine, theirs = lint_version(PLUGIN_LINT), lint_version(linter)
+    outdated = bool(mine) and mine != theirs
+    if not stale and not problems and not outdated:
         return 0
 
     out = []
@@ -69,6 +85,9 @@ def main() -> int:
                    "finding out it was wrong. /docs-sync updates them.")
     if problems:
         out.append(f"docs: {problems} problem(s) -- run /docs-lint.")
+    if outdated:
+        out.append("docs: this repo's linter copy is older than the plugin's. Re-copy it with:\n"
+                   f"  {RECOPY}")
     print("\n".join(out))
     return 0
 

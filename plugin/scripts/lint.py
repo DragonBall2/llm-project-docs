@@ -19,6 +19,11 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Bumped when this file's behaviour changes. The SessionStart hook compares the copy
+# in a repository against the plugin's and says so when they differ; a translated
+# fork keeps the same number once it has the same logic.
+LINT_VERSION = "1"
+
 REQUIRED_FM = ("title", "type", "verified_at")
 META_PAGES = {"index", "log", "CLAUDE", "README"}
 DEFAULT_EXCLUDE_DIRS = ["raw"]

@@ -149,7 +149,8 @@ a week later and all of that has to be reconstructed from a diff — the *what* 
 in git, the *why* does not.
 
 **At session start**, a second hook reports anything that drifted earlier and was never
-picked up:
+picked up, and says so when the linter copied into the repository is older than the
+plugin's (`--lint-only` on the scaffold re-copies just that file):
 
 ```
 docs: 3 page(s) stale. The code some pages point at has moved --

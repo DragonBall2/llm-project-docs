@@ -13,7 +13,8 @@ silently get wrong:
   problem      a verified_at sha the repository does not contain fails
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
-  hook         silent when clean, names drifted pages when not, never blocks
+  hook         silent when clean, names drifted pages when not, never blocks;
+               notices an outdated linter copy, and --lint-only re-copies just that
   commit hook  names the pages that describe a commit; silent for docs-only,
                for code no page covers, and for repos without a wiki
   edit hook    shows a page's ⚠️ lines before the file it covers is edited;
@@ -247,6 +248,22 @@ def main() -> int:
         r = lint(repo)
         assert r.returncode == 1, f"broken link must exit 1:\n{r.stdout}"
         assert "broken link" in r.stdout, f"broken link must be named:\n{r.stdout}"
+
+        # --- outdated linter copy: hook says so, --lint-only fixes only that --
+        vend = repo / VENDORED
+        vend.write_text(vend.read_text(encoding="utf-8").replace('LINT_VERSION = "', 'LINT_VERSION = "old'),
+                        encoding="utf-8")
+        idx = repo / "docs" / "index.md"
+        idx.write_text(idx.read_text(encoding="utf-8") + "\nkeep me\n", encoding="utf-8")
+        h = hook(repo)
+        assert h.returncode == 0 and "linter copy is older" in h.stdout and "--lint-only" in h.stdout, \
+            f"session hook should notice an outdated linter copy and say how to fix it:\n{h.stdout}"
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", "--lint-only", cwd=repo)
+        assert r.returncode == 0, r.stderr
+        assert vend.read_text(encoding="utf-8") == (ROOT / "plugin" / "scripts" / "lint.py").read_text(encoding="utf-8"), \
+            "--lint-only should restore the plugin's linter byte for byte"
+        assert "keep me" in idx.read_text(encoding="utf-8"), "--lint-only must not touch other files"
+        assert "linter copy" not in hook(repo).stdout, "once re-copied the notice must stop"
 
         # --- hook: silent in a project that has no wiki ---------------------
         bare = tmp / "bare"

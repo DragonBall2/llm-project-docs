@@ -460,6 +460,8 @@ def main() -> int:
                     help="excluded when deciding what counts as code (comma separated)")
     ap.add_argument("--sha", default="", help="baseline commit for verified_at (default: HEAD)")
     ap.add_argument("--force", action="store_true", help="overwrite existing files")
+    ap.add_argument("--lint-only", action="store_true",
+                    help="only re-copy the linter into an already scaffolded repo")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
@@ -508,6 +510,8 @@ def main() -> int:
     }
 
     created, skipped = [], []
+    if args.lint_only:
+        files, args.force = {}, True
     for path, content in files.items():
         if path.exists() and not args.force:
             skipped.append(path)
@@ -532,12 +536,16 @@ def main() -> int:
             lint_dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(lint_src, lint_dst)
 
+    tag = "[dry-run] " if args.dry_run else ""
+    if args.lint_only:
+        print(f"{tag}  + {lint_dst.relative_to(root)} (linter re-copied, nothing else touched)")
+        return 0
+
     for slug, _, _ in cats:
         d = docs / slug
         if not args.dry_run:
             d.mkdir(parents=True, exist_ok=True)
 
-    tag = "[dry-run] " if args.dry_run else ""
     print(f"{tag}project:  {name}  ({root})")
     print(f"{tag}categories: {', '.join(c[0] for c in cats)}")
     print(f"{tag}baseline: {sha}")
