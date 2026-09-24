@@ -1,5 +1,5 @@
 {
-  "description": "Notices when the docs wiki has drifted from the code. Silent when clean.",
+  "description": "Notices when the docs wiki drifts from the code: a reminder at session start, and the pages that describe a commit right after it lands. Silent when there is nothing specific to say.",
   "hooks": {
     "SessionStart": [
       {
@@ -8,6 +8,18 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-notice.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(git commit *)",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-after-commit.py\""
           }
         ]
       }

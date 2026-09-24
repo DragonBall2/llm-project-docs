@@ -120,31 +120,58 @@ pages legitimately have no code sources.
 - **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes
   boilerplate; the contract in `docs/CLAUDE.md` is what the agent follows. Both scripts
   are pure Python standard library
-- **Update the docs by itself.** Drift is made *detectable*, not self-correcting. Nothing
-  watches your edits; `/docs-sync` updates pages when you run it. See below for the one
-  piece that is automatic
+- **Edit pages on its own.** The hooks tell the agent which pages are affected and what
+  to check; the agent decides and writes. Nothing rewrites documentation unattended
 
-## The one automatic piece: a notice, not an edit
+## The loop: change code, commit, docs follow
 
-The plugin ships a `SessionStart` hook that runs the wiki's own linter and says one line
-when pages have drifted:
+Two hooks put the documentation into the flow you are already in, instead of asking
+you to remember it later.
+
+**Right after a code commit**, the agent is told which pages describe what it just
+changed:
+
+```
+docs: commit 1edecec changed code that 2 wiki page(s) describe.
+  [[content-pipeline]] — server/routes/content.js
+  [[data-model]] — server/db/schema.js
+
+While the change is still fresh, check each page against what you just did:
+  - prose still correct -> move `verified_at` to 1edecec
+  - prose now wrong     -> fix the body, then move `updated` and `verified_at`
+  - a trap you hit while making this change and the page does not mention it
+    -> that is the most valuable thing you can add
+```
+
+**This is the cheapest moment to get documentation right.** The agent still has the
+change in context: what it tried, what broke, why the fix looks odd. Run `/docs-sync`
+a week later and all of that has to be reconstructed from a diff — the *what* survives
+in git, the *why* does not.
+
+**At session start**, a second hook reports anything that drifted earlier and was never
+picked up:
 
 ```
 docs: 3 page(s) stale. The code some pages point at has moved --
 run /docs-sync before relying on them, or /docs-lint to see the list.
 ```
 
-**It stays silent when the docs are clean**, and silent in projects that do not have this
-wiki. A hook that speaks every session is noise, and noise is how a signal stops being
-believed. It never blocks a session: every failure path exits 0.
+### Both stay quiet unless they have something specific to say
 
-It deliberately does **not** update anything. Fixing a page means reading a diff and
-judging whether the prose still holds. Automating that would mass-produce the exact
-failure `unverified` exists to expose — a sha moved forward with nobody having read
-anything. What is worth automating here is the reminder, not the edit.
+Silent when the docs are clean. Silent in projects without this wiki. Silent for a
+docs-only commit, and silent when no page points at the files you touched. A hook that
+speaks every session is noise, and noise is how a signal stops being believed. Neither
+can fail a commit or block a session: every path exits 0.
 
-Rules like "run `/docs-sync` after every deploy" are written into `docs/CLAUDE.md`, but a
-rule in a file is not a mechanism. This hook is the mechanism.
+### They hand over the decision, they do not make it
+
+Neither hook edits a page. They name the pages and say what to check; whether the prose
+still holds is a judgement, and the agent that just made the change is the one positioned
+to make it. `/docs-lint` still reports a `verified_at` that moved with an untouched body
+as `unverified`, so skipping the reading remains visible.
+
+Rules like "run `/docs-sync` after every deploy" can be written into `docs/CLAUDE.md`,
+but a rule in a file is not a mechanism. These are the mechanism.
 
 ## Layout it creates
 

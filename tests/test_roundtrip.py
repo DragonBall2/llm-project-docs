@@ -12,12 +12,15 @@ silently get wrong:
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
   hook         silent when clean, speaks when stale, never blocks a session
+  commit hook  names the pages that describe a commit; silent for docs-only,
+               for code no page covers, and for repos without a wiki
 
 No framework, no fixtures. Standard library only, same as the scripts.
 """
 
 from __future__ import annotations
 
+import json as _json_mod
 import shutil
 import subprocess
 import sys
@@ -27,6 +30,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SCAFFOLD = ROOT / "plugin" / "scripts" / "scaffold.py"
 HOOK = ROOT / "plugin" / "hooks" / "docs-notice.py"
+COMMIT_HOOK = ROOT / "plugin" / "hooks" / "docs-after-commit.py"
 VENDORED = ".claude/scripts/docs-lint.py"
 
 
@@ -60,6 +64,19 @@ def hook(repo: Path) -> subprocess.CompletedProcess:
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
     return subprocess.run([sys.executable, str(HOOK)], cwd=repo,
                           capture_output=True, text=True, env=env)
+
+
+def after_commit(repo: Path) -> str:
+    """Run the post-commit hook as Claude Code would, return additionalContext."""
+    payload = _json_mod.dumps({"cwd": str(repo), "hook_event_name": "PostToolUse",
+                               "tool_name": "Bash",
+                               "tool_input": {"command": "git commit -m x"}})
+    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], input=payload,
+                       capture_output=True, text=True, cwd=repo)
+    assert r.returncode == 0, "commit hook must never fail a commit"
+    if not r.stdout.strip():
+        return ""
+    return _json_mod.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
 
 
 def main() -> int:
@@ -140,6 +157,28 @@ def main() -> int:
         assert "stale" in h.stdout, f"hook should speak when stale:\n{h.stdout}"
         assert "/docs-sync" in h.stdout, "hook should name the command to run"
 
+        # --- post-commit hook: names the pages that cover what just changed --
+        ctx = after_commit(repo)
+        assert "overview" in ctx and "glossary" in ctx, \
+            f"commit hook should name both pages that point at src/app.py:\n{ctx}"
+        assert "src/app.py" in ctx, f"commit hook should name the changed file:\n{ctx}"
+        assert "verified_at" in ctx, "commit hook should say what to do"
+
+        # docs-only commit is not drift -> silent
+        (repo / "docs" / "concepts" / "glossary.md").write_text(
+            (repo / "docs" / "concepts" / "glossary.md").read_text(encoding="utf-8") + "\nnote\n",
+            encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "docs: tweak")
+        assert after_commit(repo) == "", "docs-only commit must be silent"
+
+        # code no page points at -> silent
+        (repo / "tools").mkdir()
+        (repo / "tools" / "z.py").write_text("x = 1\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "chore: tool")
+        assert after_commit(repo) == "", "uncovered code must be silent"
+
         # --- problem: a broken link must fail -------------------------------
         p = repo / "docs" / "concepts" / "glossary.md"
         p.write_text(p.read_text(encoding="utf-8") + "\n[[no-such-page]]\n", encoding="utf-8")
@@ -155,7 +194,9 @@ def main() -> int:
         assert h.returncode == 0 and h.stdout.strip() == "", \
             f"hook must say nothing where there is no wiki:\n{h.stdout}"
 
-        print("ok - scaffold, clean, json, hook, unverified, stale, broken link")
+        assert after_commit(bare) == "", "commit hook must be silent without a wiki"
+
+        print("ok - scaffold, clean, json, hooks, unverified, stale, broken link")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
