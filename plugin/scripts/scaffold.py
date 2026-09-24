@@ -68,7 +68,8 @@ def claude_md(name: str, cats: list[tuple[str, str, str]], excludes: list[str]) 
 
     return f"""# {name} docs/ wiki contract
 
-> This directory is a **wiki maintained by an LLM**, not a pile of flat documents.
+> This directory is a **wiki maintained by an LLM**: linked markdown pages, not a pile of
+> flat documents and not a separate site.
 > This file defines the rules. **Change the structure only with the user's approval.**
 
 The repository root `CLAUDE.md` tells the agent *how to work*. This file says *how to
@@ -373,7 +374,8 @@ INDEX_TMPL = """# {name} -- documentation
 
 <!-- TODO: one-line description -->
 
-This directory is a wiki maintained by an LLM. The rules are in [`CLAUDE.md`](CLAUDE.md).
+This directory is a wiki maintained by an LLM: linked markdown pages, nothing outside the
+repository. The rules are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Start here
 

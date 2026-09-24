@@ -84,7 +84,7 @@ def main() -> int:
              + (f" (+{len(files) - 4})" if len(files) > 4 else "")
              for name, files in hits]
     msg = (
-        f"docs: commit {sha} changed code that {len(hits)} wiki page(s) describe.\n"
+        f"docs: commit {sha} changed code that {len(hits)} docs page(s) describe.\n"
         + "\n".join(lines)
         + "\n\nWhile the change is still fresh, check each page against what you just did:\n"
           "  - prose still correct -> move `verified_at` to " + sha + "\n"

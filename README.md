@@ -6,6 +6,9 @@
 Documentation for a living codebase, kept in the repository, maintained by an LLM — and,
 crucially, one that can tell you **which pages have gone out of date**.
 
+"Wiki" here means linked markdown pages inside `docs/`, not a separate site: no server,
+no web UI, edited mostly by the agent and reviewed like any other file in a commit.
+
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
 /plugin install llm-project-docs@llm-project-docs
@@ -132,7 +135,7 @@ you to remember it later.
 changed:
 
 ```
-docs: commit 1edecec changed code that 2 wiki page(s) describe.
+docs: commit 1edecec changed code that 2 docs page(s) describe.
   [[content-pipeline]] — server/routes/content.js
   [[data-model]] — server/db/schema.js
 
@@ -161,7 +164,7 @@ run /docs-sync before relying on them, or /docs-lint to see the list.
 cover it:
 
 ```
-docs: before you edit server/routes/content.js, the wiki has traps recorded for it:
+docs: before you edit server/routes/content.js, docs/ has traps recorded for it:
   [[content-pipeline]]
     ⚠️ The route runs twice on a retry; the handler must stay idempotent.
 If the trap no longer applies after your change, fix the page too.

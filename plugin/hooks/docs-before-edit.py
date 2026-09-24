@@ -113,7 +113,7 @@ def main() -> int:
 
     seen.write_text("\n".join(shown + [rel]) + "\n", encoding="utf-8")
 
-    lines = [f"docs: before you edit {rel}, the wiki has traps recorded for it:"]
+    lines = [f"docs: before you edit {rel}, docs/ has traps recorded for it:"]
     for name, t in hits:
         lines.append(f"  [[{name}]]")
         lines += [f"    {x}" for x in t]
