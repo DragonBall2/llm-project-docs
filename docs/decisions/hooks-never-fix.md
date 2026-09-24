@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/hooks/
-verified_at: 0bd568f
+verified_at: 4c96848
 ---
 
 # Decision: hooks point, they do not fix
@@ -25,7 +25,8 @@ it. So the hooks hand over the decision and the moment, not the edit.
 No wiki, docs-only commit, a file no page covers, a covered file with no ⚠️ line, a page
 already shown this session: nothing. A hook that speaks every session is noise, and noise
 is how a signal stops being believed. The SessionStart hook speaks only when the linter
-reports stale or problem pages.
+reports stale or problem pages, or when the repository's linter copy is older than the
+plugin's ([[vendored-linter]]).
 
 ## 3. Every path exits 0
 
