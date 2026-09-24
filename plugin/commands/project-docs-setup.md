@@ -15,6 +15,18 @@ git -C <repo> status --short          # uncommitted / untracked
 ls <repo>/docs/ 2>/dev/null && wc -l <repo>/docs/*.md
 ```
 
+**If `docs/CLAUDE.md` exists, this repository already has the wiki. Do not scaffold and
+do not split anything** -- the pages are already pages, and "split along headings" would
+tear them apart. Rerunning means one of these, and each has its own answer:
+
+| Asked for | Do |
+|---|---|
+| `--lint-only` in the arguments, or the session hook said the linter copy is old | `python3 "$SCAFFOLD" --root <repo> --lint-only`, then stop |
+| a new category | create the directory, add its section to `docs/index.md`, and its row to the category table in `docs/CLAUDE.md`. Nothing else |
+| nothing specific | run `/docs-status` and report it. Ask only if the user's intent is still unclear |
+
+Everything below this line is for a repository that does not have the wiki yet.
+
 Two paths:
 
 | Situation | Approach |

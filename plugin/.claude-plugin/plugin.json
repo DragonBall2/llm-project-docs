@@ -2,6 +2,6 @@
   "name": "llm-project-docs",
   "displayName": "LLM Project Docs",
   "description": "Turn a repository's docs/ into an LLM-maintained wiki: categories by access pattern, per-page verified_at drift tracking, and /docs-sync, /docs-lint, /docs-query, /docs-status.",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "author": { "name": "DragonBall2" }
 }
