@@ -3,15 +3,18 @@
 [![test](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml/badge.svg)](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Documentation for a living codebase, kept as a wiki inside the repository, maintained by
-an LLM — and, crucially, one that can tell you **which pages have gone out of date**.
+The agent that changed the code updates the docs, in the same turn. You never have to
+think about them, and the update is made by the agent that still understands the change,
+not by a script bumping a sha. Docs are kept as a wiki inside the repository, every page
+records the commit it was checked against, and the ones that have **gone out of date can
+be computed**.
 
 "Wiki" here means linked markdown pages inside `docs/`, not a separate site: no server,
 no web UI, edited mostly by the agent and reviewed like any other file in a commit.
 
-![Three hooks: traps before an edit, affected pages after a commit, stale pages at session start](demo.gif)
+![One turn: the agent fixes lint.py, the pre-edit hook shows the traps, the commit hook names five pages, the agent updates them before it is done](demo.gif)
 
-<sup>Hook output is real, from this repository. The terminal around it is scripted, and one long trap in the first scene is trimmed.</sup>
+<sup>One real turn from this repository's history (commits 70f1eb5 and f5ce7ea): the hook text and diff counts are real, the terminal around them is rendered by `tests/render_demo.py`, and one long trap is trimmed.</sup>
 
 ```
 /plugin marketplace add DragonBall2/llm-project-docs

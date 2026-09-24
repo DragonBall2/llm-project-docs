@@ -1,26 +1,38 @@
-"""Render demo.gif (not a test; needs Pillow and the Windows fonts under /mnt/c): three scenes, each a real hook output inside a scripted terminal.
+"""Render demo.gif (not a test; needs Pillow and the Windows fonts under /mnt/c).
 
-Frames are emitted only when something changes, with per-frame durations, so the
-GIF stays small. Hook text is verbatim from running the hooks on this repository
-(pre-edit output has one long paragraph trimmed, marked with ...).
+One Claude Code turn: the agent fixes lint.py, the pre-edit hook shows the traps,
+the commit hook names the pages, and the agent updates them before it is done.
+Hook text is verbatim from running the hooks on this repository at 70f1eb5; the
+diff counts come from git; the terminal around it is drawn here. One long trap in
+the pre-edit output is trimmed (marked ...).
 """
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont
+import subprocess
 import textwrap
 
-W, H, PAD, LH = 960, 600, 22, 24
+from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parent.parent
+W, H, PAD, LH = 960, 640, 20, 24
 FONT = ImageFont.truetype("/mnt/c/Windows/Fonts/consola.ttf", 17)
 BOLD = ImageFont.truetype("/mnt/c/Windows/Fonts/consolab.ttf", 17)
 SYM = ImageFont.truetype("/mnt/c/Windows/Fonts/seguisym.ttf", 17)
-COLS = 94
+COLS = 96
+BOTTOM = 4 * LH + 8  # input box
 
-BG, FG, DIM = "#0d1117", "#e6edf3", "#8b949e"
-GREEN, CYAN, YELLOW, ORANGE, PURPLE = "#3fb950", "#79c0ff", "#e3b341", "#f0883e", "#d2a8ff"
+BG, FG, DIM, DIMMER = "#0d1117", "#e6edf3", "#8b949e", "#484f58"
+GREEN, CYAN, YELLOW, ORANGE, RED = "#3fb950", "#79c0ff", "#e3b341", "#f0883e", "#ff7b72"
 
 frames, durs = [], []
 
 
-def wrap(text, indent=0):
+def stat(sha, path):
+    out = subprocess.run(["git", "-C", str(ROOT), "show", "--numstat", "--format=", sha, "--", path],
+                         capture_output=True, text=True).stdout.split()
+    return f"Updated {path} with {out[0]} additions and {out[1]} removals"
+
+
+def wrap(text, extra=0):
     lines = []
     for raw in text.split("\n"):
         lead = len(raw) - len(raw.lstrip(" "))
@@ -28,82 +40,81 @@ def wrap(text, indent=0):
         if not body:
             lines.append("")
             continue
-        for i, l in enumerate(textwrap.wrap(body, COLS - lead - indent) or [""]):
-            lines.append(" " * (lead + (0 if i == 0 else 4)) + l)
+        for i, l in enumerate(textwrap.wrap(body, COLS - lead - extra) or [""]):
+            lines.append(" " * (lead + (0 if i == 0 else 3)) + l)
     return lines
 
 
-def color_for(line):
+def draw_line(d, x, y, line):
+    """One transcript line, coloured the way the TUI colours it."""
     s = line.lstrip()
-    if s.startswith("docs:"):
-        return YELLOW
-    if s.startswith("[["):
-        return CYAN
-    if s.startswith("⚠"):
-        return ORANGE
-    if s.startswith("$"):
-        return GREEN
-    if s.startswith("●"):
-        return PURPLE
-    if s.startswith(">"):
-        return FG
-    return DIM
+    indent = len(line) - len(s)
+    x += d.textlength(" " * indent, font=FONT)
+    if s.startswith("> "):
+        d.text((x, y), s, font=BOLD, fill=FG)
+    elif s.startswith("⏺"):
+        rest = s[1:].strip()
+        d.text((x, y - 1), "⏺", font=SYM, fill=GREEN if "(" in rest.split(" ")[0] else FG)
+        d.text((x + 22, y), rest, font=FONT, fill=FG)
+    elif s.startswith("⎿"):
+        rest = s[1:].strip()
+        d.text((x, y - 1), "⎿", font=SYM, fill=DIM)
+        col = DIM
+        if rest.endswith("hook"):
+            col = DIMMER
+        d.text((x + 22, y), rest, font=FONT, fill=col)
+    elif s.startswith("docs:"):
+        d.text((x, y), s, font=FONT, fill=YELLOW)
+    elif s.startswith("[["):
+        d.text((x, y), s, font=FONT, fill=CYAN)
+    elif s.startswith("⚠"):
+        d.text((x, y - 1), "⚠", font=SYM, fill=ORANGE)
+        d.text((x + 20, y), s[1:].lstrip("️ "), font=FONT, fill=ORANGE)
+    elif s.startswith("- "):
+        d.text((x, y), s, font=FONT, fill=DIM)
+    else:
+        d.text((x, y), s, font=FONT, fill=DIM if indent >= 5 else FG)
 
 
-def render(lines, cursor=False):
+def render(lines, typing=None):
     im = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(im)
-    # title bar
-    d.rectangle([0, 0, W, 34], fill="#161b22")
-    for i, c in enumerate(("#ff5f56", "#ffbd2e", "#27c93f")):
-        d.ellipse([16 + i * 22, 11, 28 + i * 22, 23], fill=c)
-    d.text((W // 2 - 60, 8), "claude — llm-project-docs", font=FONT, fill=DIM)
-    y = 34 + PAD
-    for line in lines[-((H - 34 - PAD * 2) // LH):]:
-        x = PAD
-        col = color_for(line)
-        if "⚠" in line:
-            pre, post = line.split("⚠", 1)
-            d.text((x, y), pre, font=FONT, fill=col)
-            x += d.textlength(pre, font=FONT)
-            d.text((x, y - 1), "⚠", font=SYM, fill=col)
-            x += 20
-            d.text((x, y), post.lstrip("️ "), font=FONT, fill=col)
-        elif line.lstrip().startswith("$") or line.lstrip().startswith("●"):
-            head, rest = line.split(" ", 1) if " " in line else (line, "")
-            d.text((x, y), head, font=BOLD, fill=col)
-            d.text((x + 22, y), rest, font=FONT, fill=FG)
-        else:
-            d.text((x, y), line, font=FONT, fill=col)
+    top = PAD
+    rows = (H - BOTTOM - PAD * 2) // LH
+    y = top
+    for line in lines[-rows:]:
+        draw_line(d, PAD, y, line)
         y += LH
-    if cursor:
-        d.rectangle([PAD + d.textlength(lines[-1], font=FONT) + 2, y - LH + 3,
-                     PAD + d.textlength(lines[-1], font=FONT) + 11, y - 3], fill=FG)
+    # input box, as the TUI draws it
+    by = H - BOTTOM
+    d.rounded_rectangle([PAD, by + 6, W - PAD, by + 2 * LH + 6], radius=6, outline=DIMMER, width=1)
+    prompt = typing if typing is not None else ""
+    d.text((PAD + 14, by + LH - 6), "> " + prompt, font=FONT, fill=FG if prompt else DIMMER)
+    if typing is not None:
+        cx = PAD + 14 + d.textlength("> " + prompt, font=FONT)
+        d.rectangle([cx, by + LH - 3, cx + 9, by + 2 * LH - 9], fill=FG)
+    d.text((PAD + 14, by + 3 * LH), "? for shortcuts", font=FONT, fill=DIMMER)
     return im
 
 
-def emit(lines, dur, cursor=False):
-    frames.append(render(lines, cursor))
+def emit(lines, dur, typing=None):
+    frames.append(render(lines, typing))
     durs.append(dur)
 
 
-def type_line(screen, text, per=45, hold=500):
-    for i in range(1, len(text) + 1):
-        emit(screen + [text[:i]], per, cursor=True)
-    emit(screen + [text], hold)
-    screen.append(text)
+def say(screen, line, dur=500):
+    screen.append(line)
+    emit(screen, dur)
 
 
-def block(screen, text, per=120, hold=3500):
-    for l in wrap(text):
-        screen.append(l)
+def block(screen, text, per=90, hold=3000):
+    for l in wrap(text, extra=6):
+        screen.append("     " + l)
         emit(screen, per)
     emit(screen, hold)
 
 
 PRE_EDIT = """docs: before you edit plugin/scripts/lint.py, docs/ has traps recorded for it:
-  [[page-states]]
-    ⚠️ `verified_at` is written *before* you commit, so a fresh docs commit shows every page it touched as "stale by 1". That is your own commit, not drift.
   [[lint]]
     ⚠️ `--topo-order` is what makes this exact, not an optimisation. Topological order places every ancestor of a commit after it, so anything listed before the sha is provably not an ancestor, and since everything is reachable from HEAD that is exactly `sha..HEAD`. Plain reverse-chronological order **undercounts** commits merged in from a side branch, which is the dangerous direction for a staleness check.
     ⚠️ Every git call that returns paths needs `-c core.quotepath=false`. By default git escapes non-ASCII paths, so a Korean page name never matches the path looked up. The first time this regressed, unverified went from 6 to 0 and **looked like an improvement**. ...
@@ -115,61 +126,60 @@ COMMIT = """docs: commit 70f1eb5 changed code that 5 docs page(s) describe.
   [[release]] — .claude-plugin/marketplace.json, plugin/.claude-plugin/plugin.json
   [[testing]] — tests/test_roundtrip.py
   [[lint]] — plugin/scripts/lint.py
-
 While the change is still fresh, check each page against what you just did:
   - prose still correct -> move `verified_at` to 70f1eb5
   - prose now wrong     -> fix the body, then move `updated` and `verified_at`
   - a trap you hit while making this change and the page does not mention it -> that is the most valuable thing you can add"""
 
-SESSION = """docs: 5 page(s) describe code that moved since they were checked.
-  [[layout]] -- 1 commits behind
-  [[lint]] -- 1 commits behind
-  [[page-states]] -- 1 commits behind
-  [[release]] -- 1 commits behind
-  [[testing]] -- 1 commits behind
-Reading one before you touch that area is usually cheaper than finding out it was wrong. /docs-sync updates them."""
-
-# scene 1: before the edit
+ask = "the stale count misses commits merged from a branch. fix lint.py"
 s = []
-type_line(s, "$ claude")
-s.append("")
-type_line(s, "> the stale count misses commits merged from a branch. fix lint.py")
-s.append("")
-emit(s, 700)
-s.append("● Edit(plugin/scripts/lint.py)")
-emit(s, 900)
-s.append("  PreToolUse hook:")
-block(s, PRE_EDIT, hold=6000)
-
-# scene 2: after the commit
-s = ["$ claude", "", "> the stale count misses commits merged from a branch. fix lint.py", "",
-     "● Edit(plugin/scripts/lint.py) … done", "● Bash(python3 tests/test_roundtrip.py) … ok", ""]
-emit(s, 600)
-s.append('● Bash(git commit -am "perf: lint.py makes 12 git calls instead of 70")')
-emit(s, 900)
-s.append("  PostToolUse hook:")
-block(s, COMMIT, hold=6000)
-
-# scene 3: next session
-s = []
-type_line(s, "$ claude")
-emit(s, 600)
-s.append("  SessionStart hook:")
-block(s, SESSION, hold=5000)
+emit(s, 800, typing="")
+for i in range(1, len(ask) + 1):
+    emit(s, 40, typing=ask[:i])
+emit(s, 600, typing=ask)
+say(s, "> " + ask, 900)
+say(s, "")
+say(s, "⏺ Read(plugin/scripts/lint.py)", 400)
+say(s, "  ⎿  Read 355 lines", 700)
+say(s, "⏺ Update(plugin/scripts/lint.py)", 500)
+say(s, "  ⎿  PreToolUse hook", 300)
+block(s, PRE_EDIT, hold=5500)
+say(s, "  ⎿  " + stat("70f1eb5", "plugin/scripts/lint.py"), 900)
+say(s, "⏺ Bash(python3 tests/test_roundtrip.py)", 600)
+say(s, "  ⎿  ok - scaffold, clean, json, hooks, edit hook, unverified, stale, broken link", 900)
+say(s, '⏺ Bash(git commit -am "perf: lint.py makes 12 git calls instead of 70")', 600)
+say(s, "  ⎿  [main 70f1eb5] perf: lint.py makes 12 git calls instead of 70", 500)
+say(s, "  ⎿  PostToolUse hook", 300)
+block(s, COMMIT, hold=5000)
+say(s, "⏺ Five pages describe what I just changed. Checking each while the change is still", 100)
+say(s, "  in context.", 1500)
+say(s, "⏺ Update(docs/subsystems/lint.md)", 500)
+say(s, "  ⎿  " + stat("f5ce7ea", "docs/subsystems/lint.md"), 700)
+say(s, "⏺ Update(docs/concepts/page-states.md)", 500)
+say(s, "  ⎿  " + stat("f5ce7ea", "docs/concepts/page-states.md"), 700)
+say(s, "⏺ Update(docs/operations/testing.md)", 500)
+say(s, "  ⎿  " + stat("f5ce7ea", "docs/operations/testing.md"), 700)
+say(s, "⏺ layout and release only describe the version bump. The prose still holds, so only", 100)
+say(s, "  verified_at moves.", 1200)
+say(s, '⏺ Bash(git commit -am "docs: pages named by the commit hook, checked against 70f1eb5")', 600)
+say(s, "  ⎿  [main f5ce7ea] docs: pages named by the commit hook, checked against 70f1eb5", 800)
+say(s, "⏺ Done. lint.py makes 12 git calls instead of 70, and the five pages that describe it", 100)
+say(s, "  are checked against 70f1eb5.", 6000)
 
 # end card
 im = Image.new("RGB", (W, H), BG)
 d = ImageDraw.Draw(im)
 big = ImageFont.truetype("/mnt/c/Windows/Fonts/consolab.ttf", 26)
 d.text((PAD, 200), "llm-project-docs", font=big, fill=FG)
-d.text((PAD, 250), "docs/ that knows which pages went stale,", font=FONT, fill=DIM)
-d.text((PAD, 274), "and shows you the traps before you edit.", font=FONT, fill=DIM)
+d.text((PAD, 250), "The agent that changed the code updates the docs, in the same turn.", font=FONT, fill=DIM)
+d.text((PAD, 274), "You never think about them. Nothing is bumped by a script.", font=FONT, fill=DIM)
 d.text((PAD, 330), "/plugin marketplace add DragonBall2/llm-project-docs", font=FONT, fill=GREEN)
 d.text((PAD, 354), "/plugin install llm-project-docs@llm-project-docs", font=FONT, fill=GREEN)
 d.text((PAD, 378), "/project-docs-setup", font=FONT, fill=GREEN)
-frames.append(im); durs.append(4000)
+frames.append(im)
+durs.append(4500)
 
-pal = [f.quantize(colors=32, method=Image.Quantize.MEDIANCUT) for f in frames]
-pal[0].save(str(Path(__file__).resolve().parent.parent / "demo.gif"), save_all=True, append_images=pal[1:],
+pal = [f.quantize(colors=16, method=Image.Quantize.MEDIANCUT) for f in frames]
+pal[0].save(ROOT / "demo.gif", save_all=True, append_images=pal[1:],
             duration=durs, loop=0, optimize=True)
-print(len(frames), "frames,", sum(durs) / 1000, "s")
+print(len(frames), "frames,", round(sum(durs) / 1000, 1), "s")
