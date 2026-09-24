@@ -67,6 +67,8 @@ def main() -> int:
     ap.add_argument("--exclude", default=",".join(DEFAULT_EXCLUDE_DIRS),
                     help="subdirectories that are not wiki pages (comma separated)")
     ap.add_argument("--quiet", action="store_true", help="print the summary only")
+    ap.add_argument("--json", action="store_true",
+                    help="print counts as JSON and nothing else (for hooks and scripts)")
     args = ap.parse_args()
 
     root = Path(args.root).resolve()
@@ -197,6 +199,20 @@ def main() -> int:
 
     sizes = sorted(len(re.sub(r"\s+", "", p.read_text(encoding="utf-8")))
                    for p in pages.values()) or [0]
+
+    if args.json:
+        # Counts only, so a hook never parses prose. A translated copy of this
+        # script still emits the same keys.
+        import json as _json
+        print(_json.dumps({
+            "pages": len(pages),
+            "problems": len(problems),
+            "stale": len(stale),
+            "unverified": len(unverified),
+            "notes": len(notes),
+            "todos": len(todos),
+        }, ensure_ascii=False))
+        return 1 if problems else 0
 
     print(f"{len(pages)} pages - median {sizes[len(sizes)//2]} chars "
           f"(min {sizes[0]} / max {sizes[-1]}) - {len(linked)} [[links]] - {len(checked)} citations")

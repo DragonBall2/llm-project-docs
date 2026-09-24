@@ -117,6 +117,31 @@ pages legitimately have no code sources.
 - **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes
   boilerplate; the contract in `docs/CLAUDE.md` is what the agent follows. Both scripts
   are pure Python standard library
+- **Update the docs by itself.** Drift is made *detectable*, not self-correcting. Nothing
+  watches your edits; `/docs-sync` updates pages when you run it. See below for the one
+  piece that is automatic
+
+## The one automatic piece: a notice, not an edit
+
+The plugin ships a `SessionStart` hook that runs the wiki's own linter and says one line
+when pages have drifted:
+
+```
+docs: 3 page(s) stale. The code some pages point at has moved --
+run /docs-sync before relying on them, or /docs-lint to see the list.
+```
+
+**It stays silent when the docs are clean**, and silent in projects that do not have this
+wiki. A hook that speaks every session is noise, and noise is how a signal stops being
+believed. It never blocks a session: every failure path exits 0.
+
+It deliberately does **not** update anything. Fixing a page means reading a diff and
+judging whether the prose still holds. Automating that would mass-produce the exact
+failure `unverified` exists to expose — a sha moved forward with nobody having read
+anything. What is worth automating here is the reminder, not the edit.
+
+Rules like "run `/docs-sync` after every deploy" are written into `docs/CLAUDE.md`, but a
+rule in a file is not a mechanism. This hook is the mechanism.
 
 ## Layout it creates
 

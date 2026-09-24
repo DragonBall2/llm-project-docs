@@ -3,13 +3,15 @@
 
     python tests/test_roundtrip.py
 
-Asserts the four outcomes that matter, because each one is a thing the tool would
+Asserts the outcomes that matter, because each one is a thing the tool would
 silently get wrong:
 
   clean        a correct wiki passes and exits 0
   stale        moving the code this page points at is detected
   unverified   a page with no code: sources is "cannot decide", not "fine"
   problem      a broken [[link]] fails and exits 1
+  json         counts come out language-independently, for the hook to read
+  hook         silent when clean, speaks when stale, never blocks a session
 
 No framework, no fixtures. Standard library only, same as the scripts.
 """
@@ -24,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCAFFOLD = ROOT / "plugin" / "scripts" / "scaffold.py"
+HOOK = ROOT / "plugin" / "hooks" / "docs-notice.py"
 VENDORED = ".claude/scripts/docs-lint.py"
 
 
@@ -49,6 +52,14 @@ def page(repo: Path, cat: str, name: str, body: str, sha: str, sources: str) -> 
         f"sources:\n{sources}\nverified_at: {sha}\n---\n\n# {name}\n\n{body}\n",
         encoding="utf-8",
     )
+
+
+def hook(repo: Path) -> subprocess.CompletedProcess:
+    """Run the SessionStart hook the way Claude Code would."""
+    import os
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
+    return subprocess.run([sys.executable, str(HOOK)], cwd=repo,
+                          capture_output=True, text=True, env=env)
 
 
 def main() -> int:
@@ -91,6 +102,18 @@ def main() -> int:
         assert "stale" not in r.stdout, f"nothing should be stale yet:\n{r.stdout}"
         assert "unverified" not in r.stdout, f"nothing should be unverified yet:\n{r.stdout}"
 
+        # --- json: counts only, no prose for a hook to misparse -------------
+        r = run(sys.executable, VENDORED, "--root", ".", "--json", cwd=repo)
+        import json as _json
+        counts = _json.loads(r.stdout.strip())
+        assert counts["stale"] == 0 and counts["problems"] == 0, counts
+        assert counts["pages"] == 2, counts
+
+        # --- hook: silent while clean ---------------------------------------
+        h = hook(repo)
+        assert h.returncode == 0, "hook must never block a session"
+        assert h.stdout.strip() == "", f"hook should stay silent when clean:\n{h.stdout}"
+
         # --- unverified: a page with no code: sources -----------------------
         page(repo, "decisions", "adr-001", "See [[overview]].", sha, "  - ext: https://example.com")
         with (repo / "docs" / "index.md").open("a", encoding="utf-8") as f:
@@ -112,6 +135,11 @@ def main() -> int:
         assert "2 stale" in r.stdout, f"both code-backed pages should be stale:\n{r.stdout}"
         assert r.returncode == 0, "stale is a report, not a failure"
 
+        h = hook(repo)
+        assert h.returncode == 0, "hook must never block a session"
+        assert "stale" in h.stdout, f"hook should speak when stale:\n{h.stdout}"
+        assert "/docs-sync" in h.stdout, "hook should name the command to run"
+
         # --- problem: a broken link must fail -------------------------------
         p = repo / "docs" / "concepts" / "glossary.md"
         p.write_text(p.read_text(encoding="utf-8") + "\n[[no-such-page]]\n", encoding="utf-8")
@@ -120,7 +148,14 @@ def main() -> int:
         assert r.returncode == 1, f"broken link must exit 1:\n{r.stdout}"
         assert "broken link" in r.stdout, f"broken link must be named:\n{r.stdout}"
 
-        print("ok - scaffold, clean, unverified, stale, broken link")
+        # --- hook: silent in a project that has no wiki ---------------------
+        bare = tmp / "bare"
+        bare.mkdir()
+        h = hook(bare)
+        assert h.returncode == 0 and h.stdout.strip() == "", \
+            f"hook must say nothing where there is no wiki:\n{h.stdout}"
+
+        print("ok - scaffold, clean, json, hook, unverified, stale, broken link")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
