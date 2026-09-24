@@ -104,7 +104,8 @@ def main() -> int:
         problems.append(f"orphan page: {name} (not linked from index.md or any other page)")
 
     # (3) frontmatter / (4) broken sources / (7) stale / (8) unverified
-    stale: list[str] = []
+    stale: list[tuple[str, int]] = []
+    todo: list[tuple[str, str, list[str]]] = []
     # unverified = a page whose freshness **cannot be decided**. Not the opposite of
     # stale -- a third state. Without it, "cannot decide" silently blends into "clean",
     # and a page nobody ever checked looks exactly like a verified one.
@@ -138,17 +139,69 @@ def main() -> int:
             # (typo, rebase, force-push). That is a broken claim, not a weak one.
             problems.append(f"verified_at commit not found: {name} -> {sha}")
         else:
-            changed = git(root, "log", f"{sha}..HEAD", "--oneline", "--", *live)
-            if changed:
-                stale.append(f"{name} ({len(changed.splitlines())} commits)")
+            todo.append((name, sha, live))
+
+    # One walk for every page instead of `git log <sha>..HEAD -- <sources>` per page.
+    # That call was 16s of a 27s run on a 27-page wiki (measured 2026-09-24), which put
+    # the SessionStart hook past its timeout.
+    #
+    # --topo-order makes position exact, not approximate: it places every ancestor of a
+    # commit after it, so a commit listed *before* sha is provably not an ancestor of
+    # sha -- and since everything here is reachable from HEAD, that is exactly
+    # `sha..HEAD`. Plain reverse-chronological order would undercount commits merged in
+    # from a side branch, which is the dangerous direction for a staleness check.
+    if todo:
+        # Walk all of history once rather than computing a range: picking the right
+        # range needs a rev-list per page, which is the per-page cost we came here to
+        # remove. One unbounded walk is a single call and guarantees every page's sha
+        # is found.
+        walk = git(root, "-c", "core.quotepath=false", "log", "--topo-order",
+                   "--format=%x01%h", "--name-only", "HEAD")
+        order: list[tuple[str, list[str]]] = []
+        for line in walk.splitlines():
+            if line.startswith("\x01"):
+                order.append((line[1:].strip(), []))
+            elif line.strip() and order:
+                order[-1][1].append(line.strip())
+        pos = {sha: i for i, (sha, _) in enumerate(order)}
+
+        for name, sha, live in todo:
+            cut = pos.get(sha, len(order))
+            n = sum(1 for _, files in order[:cut]
+                    if any(f == s or f.startswith(s.rstrip("/") + "/") for f in files for s in live))
+            if n:
+                stale.append((name, n))
 
     # (8b) Silent bump -- verified_at moved without a single word of the body changing.
     # The schema allows this ("if the prose is still right, just move the sha").
     # But verified_at is a *declaration*, not proof, and a page whose sources moved
     # several commits with no trace in the body is the one place where "did you
     # actually read it?" becomes visible. Reported, never failed.
+    # One history walk for every page, not one per page. `git log -1 -- <path>`
+    # traverses all of history to find the last commit touching that path; at ~300ms
+    # on a large repository, 27 pages was 8+ seconds and the SessionStart hook hit its
+    # timeout and said nothing (measured 2026-09-24). A single `--name-only` pass
+    # gives the same answer for every page at once.
+    last_touch: dict[str, str] = {}
+    # ⚠️ core.quotepath=false: git escapes non-ASCII paths by default, so a page named
+    #    in any non-Latin script comes back as "\352\262\214..." and never matches the
+    #    path we look up. (This cost a silent regression the first time -- unverified
+    #    dropped to 0 and looked like an improvement.)
+    walk = git(root, "-c", "core.quotepath=false",
+               "log", "--format=%x01%h", "--name-only", "--", str(docs))
+    cur = ""
+    for line in walk.splitlines():
+        if line.startswith("\x01"):
+            cur = line[1:].strip()
+        elif line.strip() and line not in last_touch:
+            last_touch[line.strip()] = cur
+
     for name, p in sorted(pages.items()):
-        last = git(root, "log", "-1", "--format=%h", "--", str(p))
+        try:
+            rel = str(p.relative_to(root))
+        except ValueError:
+            continue
+        last = last_touch.get(rel, "")
         if not last:
             continue
         diff = git(root, "show", last, "--unified=0", "--", str(p)).splitlines()
@@ -208,6 +261,8 @@ def main() -> int:
             "pages": len(pages),
             "problems": len(problems),
             "stale": len(stale),
+            # Page-level detail so a hook never has to parse the prose above.
+            "stale_pages": [{"page": n, "commits": c} for n, c in stale],
             "unverified": len(unverified),
             "notes": len(notes),
             "todos": len(todos),
@@ -228,8 +283,8 @@ def main() -> int:
                 print(f"   ! {f}")
         if stale:
             print(f"\n{len(stale)} stale -> run /docs-sync")
-            for s in stale:
-                print(f"   ! {s}")
+            for n, c in stale:
+                print(f"   ! {n} ({c} commits)")
         if unverified:
             print(f"\n{len(unverified)} unverified -> freshness **cannot be decided** (different from stale)")
             for u in unverified:

@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """SessionStart notice: say something only when the docs have drifted.
 
-Runs the wiki's own vendored linter and prints a short line when pages are stale
-or broken. **Silent when everything is clean** -- a hook that speaks every session
-is noise, and noise is how a signal stops being believed.
+Runs the wiki's own vendored linter and **names the pages** that drifted, with how
+far behind each one is. A bare count reads as a debt reminder and gets deferred;
+a list reads as "is the area I am about to touch in here?", which is a question
+worth ten seconds.
+
+This is the net for drift the post-commit hook cannot see: code committed from a
+terminal, pulled from a teammate, merged in from another branch or worktree, or
+already stale before this wiki existed. `PostToolUse` only fires for commits the
+agent itself makes.
+
+**Silent when everything is clean** -- a hook that speaks every session is noise,
+and noise is how a signal stops being believed.
 
 Deliberately does not update anything. Fixing a page means reading a diff and
 judging; automating that would mass-produce exactly the failure the `unverified`
@@ -42,21 +51,25 @@ def main() -> int:
         # A broken or missing linter must not announce itself at every session.
         return 0
 
+    pages = counts.get("stale_pages") or []
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
     if not stale and not problems:
         return 0
 
-    bits = []
+    out = []
     if stale:
-        bits.append(f"{stale} page(s) stale")
+        out.append(f"docs: {stale} page(s) describe code that moved since they were checked.")
+        # Furthest behind first -- that is where the prose is most likely wrong.
+        for p in sorted(pages, key=lambda x: -x.get("commits", 0))[:8]:
+            out.append(f"  [[{p.get('page')}]] -- {p.get('commits')} commits behind")
+        if len(pages) > 8:
+            out.append(f"  ... and {len(pages) - 8} more")
+        out.append("Reading one before you touch that area is usually cheaper than "
+                   "finding out it was wrong. /docs-sync updates them.")
     if problems:
-        bits.append(f"{problems} problem(s)")
-    print(
-        f"docs: {', '.join(bits)}. "
-        f"The code some pages point at has moved -- run /docs-sync before relying on them, "
-        f"or /docs-lint to see the list."
-    )
+        out.append(f"docs: {problems} problem(s) -- run /docs-lint.")
+    print("\n".join(out))
     return 0
 
 

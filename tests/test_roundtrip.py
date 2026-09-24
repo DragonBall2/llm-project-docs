@@ -11,7 +11,7 @@ silently get wrong:
   unverified   a page with no code: sources is "cannot decide", not "fine"
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
-  hook         silent when clean, speaks when stale, never blocks a session
+  hook         silent when clean, names drifted pages when not, never blocks
   commit hook  names the pages that describe a commit; silent for docs-only,
                for code no page covers, and for repos without a wiki
 
@@ -154,7 +154,9 @@ def main() -> int:
 
         h = hook(repo)
         assert h.returncode == 0, "hook must never block a session"
-        assert "stale" in h.stdout, f"hook should speak when stale:\n{h.stdout}"
+        assert "[[overview]]" in h.stdout and "[[glossary]]" in h.stdout, \
+            f"session hook should name the drifted pages, not just count them:\n{h.stdout}"
+        assert "commits behind" in h.stdout, f"and say how far behind:\n{h.stdout}"
         assert "/docs-sync" in h.stdout, "hook should name the command to run"
 
         # --- post-commit hook: names the pages that cover what just changed --
