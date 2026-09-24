@@ -3,8 +3,8 @@
 [![test](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml/badge.svg)](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Documentation for a living codebase, kept in the repository, maintained by an LLM — and,
-crucially, one that can tell you **which pages have gone out of date**.
+Documentation for a living codebase, kept as a wiki inside the repository, maintained by
+an LLM — and, crucially, one that can tell you **which pages have gone out of date**.
 
 "Wiki" here means linked markdown pages inside `docs/`, not a separate site: no server,
 no web UI, edited mostly by the agent and reviewed like any other file in a commit.
@@ -90,19 +90,14 @@ Plus `index.md` (contents and a reading order), `log.md` (append-only work log) 
 `CLAUDE.md` (the contract every page follows). Categories you do not need are dropped at
 setup; a repository rarely has all seven.
 
-**This repository's own [`docs/`](docs/index.md) is an example**: nine pages in five
-categories, describing the plugin with the plugin. Start at `index.md`, then open
-[`docs/subsystems/lint.md`](docs/subsystems/lint.md) to see what a page looks like.
-
-## Categorised by access pattern, not by topic
-
-*Exploratory* pages (`concepts/`, `architecture/`, `subsystems/`, `decisions/`) are read
-when you do **not** know where to look, so they are split finely and linked densely.
-*Lookup* pages (`reference/`, `operations/`) are opened when you already know, so they
-stay as tables.
-
-Progressive disclosure only pays off in the first case. There is no reason to break a
+The split follows the third column. Pages you open when you do not know where to look
+are cut finely and linked densely; pages you open when you already know stay as tables.
+Progressive disclosure only pays off in the first case, so there is no reason to break a
 `SPEC.md` table apart.
+
+**This repository's own [`docs/`](docs/index.md) is an example**, describing the plugin
+with the plugin. Start at `index.md`, then open
+[`docs/subsystems/lint.md`](docs/subsystems/lint.md) to see what a page looks like.
 
 ## "Code changed" is an exclude list
 
@@ -133,19 +128,6 @@ That last one matters. `verified_at` is a *declaration, not proof* — nothing s
 bumping it without reading anything. The silent-bump check is the one place where "did you
 actually read it?" becomes visible. It is reported, never failed: concept and history
 pages legitimately have no code sources.
-
-## What it will not do
-
-- **Find contradictions between pages, or duplicated prose.** Those need reading. The
-  linter is deliberately limited to what a script can decide
-- **Work without git.** `verified_at` is a commit sha
-- **Keep line-number citations honest.** The linter checks that a cited line is inside the
-  file, not that it is still the symbol you meant. Prefer citing symbol names
-- **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes
-  boilerplate; the contract in `docs/CLAUDE.md` is what the agent follows. Both scripts
-  are pure Python standard library
-- **Edit pages on its own.** The hooks tell the agent which pages are affected and what
-  to check; the agent decides and writes. Nothing rewrites documentation unattended
 
 ## Who opens it, and when
 
@@ -186,12 +168,14 @@ a week later and all of that has to be reconstructed from a diff — the *what* 
 in git, the *why* does not.
 
 **At session start**, a second hook reports anything that drifted earlier and was never
-picked up, and says so when the linter copied into the repository is older than the
-plugin's (`--lint-only` on the scaffold re-copies just that file):
+picked up, furthest behind first:
 
 ```
-docs: 3 page(s) stale. The code some pages point at has moved --
-run /docs-sync before relying on them, or /docs-lint to see the list.
+docs: 3 page(s) describe code that moved since they were checked.
+  [[content-pipeline]] -- 7 commits behind
+  [[data-model]] -- 2 commits behind
+  [[configuration]] -- 1 commits behind
+Reading one before you touch that area is usually cheaper than finding out it was wrong. /docs-sync updates them.
 ```
 
 **Right before a file is edited**, a third hook shows the ⚠️ lines of the pages that
@@ -225,6 +209,19 @@ as `unverified`, so skipping the reading remains visible.
 Rules like "run `/docs-sync` after every deploy" can be written into `docs/CLAUDE.md`,
 but a rule in a file is not a mechanism. These are the mechanism.
 
+## What it will not do
+
+- **Find contradictions between pages, or duplicated prose.** Those need reading. The
+  linter is deliberately limited to what a script can decide
+- **Work without git.** `verified_at` is a commit sha
+- **Keep line-number citations honest.** The linter checks that a cited line is inside the
+  file, not that it is still the symbol you meant. Prefer citing symbol names
+- **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes
+  boilerplate; the contract in `docs/CLAUDE.md` is what the agent follows. Both scripts
+  are pure Python standard library
+- **Edit pages on its own.** The hooks tell the agent which pages are affected and what
+  to check; the agent decides and writes. Nothing rewrites documentation unattended
+
 ## Layout it creates
 
 ```
@@ -249,6 +246,10 @@ installed. `CLAUDE_PLUGIN_ROOT` is exported to hook processes and MCP/LSP server
 and the install path differs between a plugin-cache install and a manual one. A
 repo-relative path always works, and the check ends up versioned with the docs it checks.
 
+The cost of a copy is that a newer linter in the plugin does not reach the repository by
+itself. The session hook says when the copy is older than the plugin's, and
+`scaffold.py --lint-only` re-copies that one file and nothing else.
+
 ## Manual install (no plugin system)
 
 ```bash
@@ -256,6 +257,9 @@ git clone https://github.com/DragonBall2/llm-project-docs.git
 ln -s "$PWD/llm-project-docs/plugin/skills/project-docs-setup" ~/.claude/skills/project-docs-setup
 ln -s "$PWD/llm-project-docs/plugin/commands/project-docs-setup.md" ~/.claude/commands/project-docs-setup.md
 ```
+
+This gives you the setup skill and, after setup, the four commands. The three hooks come
+only with the plugin install.
 
 Or call the scripts directly:
 
@@ -270,9 +274,10 @@ python3 /path/to/repo/.claude/scripts/docs-lint.py --root /path/to/repo
 python3 tests/test_roundtrip.py
 ```
 
-Scaffolds a throwaway git repository, runs the vendored linter from the path the
-generated command prints, and asserts that clean, stale, unverified and broken-link cases
-each produce the right result and exit code. No framework, no fixtures.
+Scaffolds a throwaway git repository and, from the path the generated command prints,
+checks that the linter reports each page state with the right exit code, and that the
+three hooks say the right thing, stay silent when they should, and never fail. No
+framework, no fixtures.
 
 ## Scope
 
@@ -283,10 +288,10 @@ will actually open it.
 
 ## A caveat worth stating
 
-`docs/` naturally accumulates production hostnames, environment variable names and
-operational procedures. **Keep the repository private, and do not publish the wiki.**
-This never records secret values — variable names at most — but the shape of your
-infrastructure is itself information.
+In a repository with infrastructure, `docs/` naturally accumulates production hostnames,
+environment variable names and operational procedures. **Keep such a repository private,
+and do not publish its wiki.** Nothing here records secret values — variable names at
+most — but the shape of your infrastructure is itself information.
 
 ## License
 
