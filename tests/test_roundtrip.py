@@ -237,6 +237,9 @@ def main() -> int:
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+        # The edit hook keeps a once-per-session marker in the temp dir; drop ours.
+        for m in Path(tempfile.gettempdir()).glob(f"docs-before-edit-t{os.getpid()}*"):
+            m.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

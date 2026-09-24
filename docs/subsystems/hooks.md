@@ -60,5 +60,9 @@ continuation lines until a blank line, a new bullet, a heading, or a change of b
 marker. The SessionStart hook has not been watched yet; the linter here runs in well under
 its 30 s budget.
 
+> ⚠️ A restarted Claude Code session keeps its `session_id`, so the once-per-file guard
+> still suppresses traps shown before the restart. To re-probe the edit hook, delete the
+> marker file `docs-before-edit-<session_id>` in the temp dir first.
+
 > ⚠️ Trap text in a page is one *paragraph*, not one line. Anything that extracts ⚠️
 > lines from a page must gather the wrapped continuation or it ships half sentences.
