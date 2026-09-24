@@ -6,7 +6,7 @@ updated: 2026-09-24
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
-verified_at: 4c96848
+verified_at: f23a73c
 ---
 
 # Decision: vendor the linter
@@ -46,10 +46,12 @@ Since 1.3.0 the linter carries `LINT_VERSION`; the SessionStart hook compares th
 copy against the plugin's and prints one line with the re-copy command when they differ:
 
 ```
-python3 "$(find ~/.claude/plugins -name scaffold.py -path '*project-docs*' | head -1)" --root . --lint-only
+python3 <plugin cache>/scripts/scaffold.py --root . --lint-only
 ```
 
-`--lint-only` overwrites the linter and nothing else. A copy with no `LINT_VERSION` at
+The hook prints the exact path of its own scaffold, because a `find` over the plugin
+cache also sees every older version still lying there. `--lint-only` overwrites the
+linter and nothing else. A copy with no `LINT_VERSION` at
 all, meaning anything scaffolded before 1.3.0, counts as outdated. The hook still does not
 copy anything itself: that file is in the repository's history and changes to it should be
 commits someone made on purpose. The gwiroman fork (Korean strings, same logic) carries

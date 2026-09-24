@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/hooks/
-verified_at: 4c96848
+verified_at: f23a73c
 ---
 
 # Hooks
