@@ -73,6 +73,27 @@ loses; documentation that records what the code cannot say is worth maintaining.
 So `sources` holds live paths, citations point at `file:line` rather than pasting
 snippets, and `raw/` explicitly refuses copies of code or of other documents.
 
+## What ends up in `docs/`
+
+| Directory | Holds | Read when |
+|---|---|---|
+| `concepts/` | domain and product concepts; mostly survive code changes | you do not know where to look |
+| `architecture/` | structure, data model, the main flows | " |
+| `subsystems/` | one page per subsystem: what it does, why it looks that way, its traps | " |
+| `decisions/` | why it was decided that way; known defects | " |
+| `reference/` | schemas, APIs, env vars, as tables | you know what you are looking up |
+| `operations/` | install, deploy, checks, incident response | " |
+| `history/` | development history, lessons, migrated records | retracing something |
+| `raw/` | material that is in neither the code nor a page: meeting notes, specs, transcripts | as a source for pages |
+
+Plus `index.md` (contents and a reading order), `log.md` (append-only work log) and
+`CLAUDE.md` (the contract every page follows). Categories you do not need are dropped at
+setup; a repository rarely has all seven.
+
+**This repository's own [`docs/`](docs/index.md) is an example**: nine pages in five
+categories, describing the plugin with the plugin. Start at `index.md`, then open
+[`docs/subsystems/lint.md`](docs/subsystems/lint.md) to see what a page looks like.
+
 ## Categorised by access pattern, not by topic
 
 *Exploratory* pages (`concepts/`, `architecture/`, `subsystems/`, `decisions/`) are read
