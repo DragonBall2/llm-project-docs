@@ -125,7 +125,7 @@ pages legitimately have no code sources.
 
 ## The loop: change code, commit, docs follow
 
-Two hooks put the documentation into the flow you are already in, instead of asking
+Three hooks put the documentation into the flow you are already in, instead of asking
 you to remember it later.
 
 **Right after a code commit**, the agent is told which pages describe what it just
@@ -156,16 +156,30 @@ docs: 3 page(s) stale. The code some pages point at has moved --
 run /docs-sync before relying on them, or /docs-lint to see the list.
 ```
 
-### Both stay quiet unless they have something specific to say
+**Right before a file is edited**, a third hook shows the ⚠️ lines of the pages that
+cover it:
+
+```
+docs: before you edit server/routes/content.js, the wiki has traps recorded for it:
+  [[content-pipeline]]
+    ⚠️ The route runs twice on a retry; the handler must stay idempotent.
+If the trap no longer applies after your change, fix the page too.
+```
+
+This is the reading side. A wiki full of "this bit us" notes is worth nothing if the
+page is not open when the code is touched, and usually it is not. Shown once per file per
+session; pages without a ⚠️ line say nothing here, the commit hook names them afterwards.
+
+### All three stay quiet unless they have something specific to say
 
 Silent when the docs are clean. Silent in projects without this wiki. Silent for a
 docs-only commit, and silent when no page points at the files you touched. A hook that
-speaks every session is noise, and noise is how a signal stops being believed. Neither
-can fail a commit or block a session: every path exits 0.
+speaks every session is noise, and noise is how a signal stops being believed. None
+can fail a commit, block an edit or a session: every path exits 0.
 
 ### They hand over the decision, they do not make it
 
-Neither hook edits a page. They name the pages and say what to check; whether the prose
+No hook edits a page. They name the pages and say what to check; whether the prose
 still holds is a judgement, and the agent that just made the change is the one positioned
 to make it. `/docs-lint` still reports a `verified_at` that moved with an untouched body
 as `unverified`, so skipping the reading remains visible.

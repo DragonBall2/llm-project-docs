@@ -14,6 +14,8 @@ silently get wrong:
   hook         silent when clean, names drifted pages when not, never blocks
   commit hook  names the pages that describe a commit; silent for docs-only,
                for code no page covers, and for repos without a wiki
+  edit hook    shows a page's ⚠️ lines before the file it covers is edited;
+               once per file per session; silent without traps or a wiki
 
 No framework, no fixtures. Standard library only, same as the scripts.
 """
@@ -21,6 +23,7 @@ No framework, no fixtures. Standard library only, same as the scripts.
 from __future__ import annotations
 
 import json as _json_mod
+import os
 import shutil
 import subprocess
 import sys
@@ -31,6 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SCAFFOLD = ROOT / "plugin" / "scripts" / "scaffold.py"
 HOOK = ROOT / "plugin" / "hooks" / "docs-notice.py"
 COMMIT_HOOK = ROOT / "plugin" / "hooks" / "docs-after-commit.py"
+EDIT_HOOK = ROOT / "plugin" / "hooks" / "docs-before-edit.py"
 VENDORED = ".claude/scripts/docs-lint.py"
 
 
@@ -60,7 +64,6 @@ def page(repo: Path, cat: str, name: str, body: str, sha: str, sources: str) -> 
 
 def hook(repo: Path) -> subprocess.CompletedProcess:
     """Run the SessionStart hook the way Claude Code would."""
-    import os
     env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
     return subprocess.run([sys.executable, str(HOOK)], cwd=repo,
                           capture_output=True, text=True, env=env)
@@ -74,6 +77,19 @@ def after_commit(repo: Path) -> str:
     r = subprocess.run([sys.executable, str(COMMIT_HOOK)], input=payload,
                        capture_output=True, text=True, cwd=repo)
     assert r.returncode == 0, "commit hook must never fail a commit"
+    if not r.stdout.strip():
+        return ""
+    return _json_mod.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
+
+
+def before_edit(repo: Path, rel: str, session: str) -> str:
+    """Run the pre-edit hook as Claude Code would, return additionalContext."""
+    payload = _json_mod.dumps({"cwd": str(repo), "session_id": session,
+                               "hook_event_name": "PreToolUse", "tool_name": "Edit",
+                               "tool_input": {"file_path": str(repo / rel)}})
+    r = subprocess.run([sys.executable, str(EDIT_HOOK)], input=payload,
+                       capture_output=True, text=True, cwd=repo)
+    assert r.returncode == 0, "edit hook must never block an edit"
     if not r.stdout.strip():
         return ""
     return _json_mod.loads(r.stdout)["hookSpecificOutput"]["additionalContext"]
@@ -181,6 +197,20 @@ def main() -> int:
         git(repo, "commit", "-qm", "chore: tool")
         assert after_commit(repo) == "", "uncovered code must be silent"
 
+        # --- pre-edit hook: traps come to the edit ---------------------------
+        sid = f"t{os.getpid()}"
+        page(repo, "concepts", "traps", "text\n\n> ⚠️ hello() must stay pure.\n\nmore",
+             sha, "  - code: src/app.py")
+        ctx = before_edit(repo, "src/app.py", sid)
+        assert "[[traps]]" in ctx and "hello() must stay pure" in ctx, \
+            f"edit hook should show the ⚠️ line of the page covering src/app.py:\n{ctx}"
+        assert "[[overview]]" not in ctx, \
+            f"a covering page with no ⚠️ line is not a trap, do not list it:\n{ctx}"
+        assert before_edit(repo, "src/app.py", sid) == "", "same file, same session -> silent"
+        assert before_edit(repo, "src/app.py", sid + "b") != "", "new session -> shown again"
+        assert before_edit(repo, "tools/z.py", sid) == "", "uncovered file must be silent"
+        (repo / "docs" / "concepts" / "traps.md").unlink()
+
         # --- problem: a broken link must fail -------------------------------
         p = repo / "docs" / "concepts" / "glossary.md"
         p.write_text(p.read_text(encoding="utf-8") + "\n[[no-such-page]]\n", encoding="utf-8")
@@ -197,8 +227,9 @@ def main() -> int:
             f"hook must say nothing where there is no wiki:\n{h.stdout}"
 
         assert after_commit(bare) == "", "commit hook must be silent without a wiki"
+        assert before_edit(bare, "x.py", "s") == "", "edit hook must be silent without a wiki"
 
-        print("ok - scaffold, clean, json, hooks, unverified, stale, broken link")
+        print("ok - scaffold, clean, json, hooks, edit hook, unverified, stale, broken link")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

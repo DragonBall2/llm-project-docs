@@ -1,5 +1,5 @@
 {
-  "description": "Notices when the docs wiki drifts from the code: a reminder at session start, and the pages that describe a commit right after it lands. Silent when there is nothing specific to say.",
+  "description": "Notices when the docs wiki drifts from the code: a reminder at session start, the pages that describe a commit right after it lands, and the traps a page records for a file right before it is edited. Silent when there is nothing specific to say.",
   "hooks": {
     "SessionStart": [
       {
@@ -20,6 +20,17 @@
             "type": "command",
             "if": "Bash(git commit *)",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-after-commit.py\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-before-edit.py\""
           }
         ]
       }
