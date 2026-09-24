@@ -7,7 +7,7 @@ sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: f23a73c
+verified_at: 599db05
 ---
 
 # scaffold.py
@@ -46,6 +46,13 @@ The plugin cache path contains a version, so the command file finds the script w
 `find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*'` rather
 than a fixed path. See [[vendored-linter]] for why nothing generated may point back at that
 location.
+
+## Running setup twice
+
+The script skips every file that exists, so a rerun cannot damage a wiki. The procedure is
+the risk: without a branch for "already a wiki" it would treat the pages as flat documents
+to split. Step 0 of `plugin/commands/project-docs-setup.md` now stops on an existing
+`docs/CLAUDE.md` and routes to `--lint-only`, a new category, or `/docs-status`.
 
 ## Setup is not automatic
 

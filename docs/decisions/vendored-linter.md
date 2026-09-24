@@ -6,7 +6,7 @@ updated: 2026-09-24
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
-verified_at: f23a73c
+verified_at: 599db05
 ---
 
 # Decision: vendor the linter
