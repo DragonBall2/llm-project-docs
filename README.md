@@ -147,6 +147,19 @@ pages legitimately have no code sources.
 - **Edit pages on its own.** The hooks tell the agent which pages are affected and what
   to check; the agent decides and writes. Nothing rewrites documentation unattended
 
+## Who opens it, and when
+
+| Situation | What you get |
+|---|---|
+| New to the codebase | `index.md` names three or four pages in reading order. Enough to place things, without reading everything |
+| About to change a file | the ⚠️ lines of the pages that cover it, shown before the edit by the pre-edit hook. This is the main reason the pages exist |
+| Have a question | `/docs-query` answers from the pages only, and says so when the answer is not there |
+| Wondering why it is like this | `decisions/`. The code holds the result; the reason is only here |
+| Back after a while, or about to deploy | `/docs-status` lists what drifted, `/docs-sync` brings it up to date |
+
+The pages are written for that second row. What is worth keeping is what someone learned
+the hard way and the code cannot tell you; the rest is a pointer at the code.
+
 ## The loop: change code, commit, docs follow
 
 Three hooks put the documentation into the flow you are already in, instead of asking
