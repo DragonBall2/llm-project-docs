@@ -8,7 +8,9 @@ silently get wrong:
 
   clean        a correct wiki passes and exits 0
   stale        moving the code this page points at is detected
-  unverified   a page with no code: sources is "cannot decide", not "fine"
+  unverified   a page with no code: sources is "cannot decide", not "fine";
+               a sha that moved with no body change is reported, not failed
+  problem      a verified_at sha the repository does not contain fails
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
   hook         silent when clean, names drifted pages when not, never blocks
@@ -24,6 +26,7 @@ from __future__ import annotations
 
 import json as _json_mod
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -196,6 +199,28 @@ def main() -> int:
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "chore: tool")
         assert after_commit(repo) == "", "uncovered code must be silent"
+
+        # --- unverified: sha moved with no body change (silent bump) ---------
+        head = run("git", "rev-parse", "--short", "HEAD", cwd=repo).stdout.strip()
+        ov = repo / "docs" / "architecture" / "overview.md"
+        ov.write_text(re.sub(r"^verified_at: \S+", f"verified_at: {head}",
+                             ov.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "docs: bump overview")
+        r = lint(repo)
+        assert r.returncode == 0, "a silent bump is reported, never failed"
+        assert "overview -- sha moved past 1 code commits" in r.stdout, \
+            f"verified_at moved past the feat commit with no body change:\n{r.stdout}"
+        assert "1 stale" in r.stdout, f"only glossary should still be stale:\n{r.stdout}"
+
+        # --- problem: a verified_at the repo does not contain ---------------
+        gl = repo / "docs" / "concepts" / "glossary.md"
+        gl.write_text(re.sub(r"^verified_at: \S+", "verified_at: deadbee",
+                             gl.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
+        r = lint(repo)
+        assert r.returncode == 1 and "verified_at commit not found: glossary" in r.stdout, \
+            f"an unknown sha is a broken claim, not a weak one:\n{r.stdout}"
+        git(repo, "checkout", "--", str(gl))
 
         # --- pre-edit hook: traps come to the edit ---------------------------
         sid = f"t{os.getpid()}"

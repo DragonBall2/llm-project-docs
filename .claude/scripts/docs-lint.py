@@ -51,12 +51,53 @@ def body(text: str) -> str:
     return parts[2] if text.startswith("---\n") and len(parts) >= 3 else text
 
 
-def git(root: Path, *args: str) -> str:
+def git(root: Path, *args: str, stdin: str = "") -> str:
     try:
-        return subprocess.run(["git", "-C", str(root), *args],
+        return subprocess.run(["git", "-C", str(root), *args], input=stdin,
                               capture_output=True, text=True, check=True).stdout.strip()
     except Exception:
         return ""
+
+
+def commits(root: Path, shas: set[str]) -> set[str]:
+    """The subset of shas that name a commit in this repository. One git call.
+
+    `git cat-file -t` per sha was 34 processes on a 27-page wiki; on a slow mount
+    every process start costs ~50 ms, so the batch form is what keeps this cheap.
+    """
+    if not shas:
+        return set()
+    out = git(root, "cat-file", "--batch-check=%(objectname) %(objecttype) %(rest)",
+              stdin="".join(f"{s} {s}\n" for s in shas))
+    return {line.split()[2] for line in out.splitlines()
+            if len(line.split()) == 3 and line.split()[1] == "commit"}
+
+
+def hunks(root: Path, shas: set[str], docs: Path) -> dict[tuple[str, str], list[str]]:
+    """Changed lines of every docs file in each of `shas`, keyed by (sha, repo path).
+
+    One `git show` for all commits instead of one per page. Only `+`/`-` content
+    lines are kept; the `---`/`+++` file headers are recognised by their `a/`, `b/`
+    or `/dev/null` operand so a removed line that itself starts with `--` survives.
+    """
+    if not shas:
+        return {}
+    out = git(root, "-c", "core.quotepath=false", "show", "--unified=0",
+              "--format=%x01%h", *sorted(shas), "--", str(docs))
+    res: dict[tuple[str, str], list[str]] = {}
+    sha = path = ""
+    for line in out.splitlines():
+        if line.startswith("\x01"):
+            sha, path = line[1:].strip(), ""
+        elif line.startswith("diff --git "):
+            path = ""
+        elif line.startswith("+++ "):
+            path = "" if line.startswith("+++ /dev/null") else line[6:]
+        elif line.startswith("--- ") and (line.startswith("--- a/") or line.startswith("--- /dev/null")):
+            continue
+        elif path and line[:1] in "+-":
+            res.setdefault((sha, path), []).append(line)
+    return res
 
 
 def main() -> int:
@@ -134,12 +175,16 @@ def main() -> int:
             unverified.append(f"{name} -- no code: sources, so there is nothing to compare against")
         elif not live:
             unverified.append(f"{name} -- all {len(src_paths)} code: sources have disappeared")
-        elif git(root, "cat-file", "-t", sha) != "commit":
+        else:
+            todo.append((name, sha, live))
+
+    known = commits(root, {sha for _, sha, _ in todo})
+    for name, sha, live in todo:
+        if sha not in known:
             # The commit the declaration points at is not in the repo
             # (typo, rebase, force-push). That is a broken claim, not a weak one.
             problems.append(f"verified_at commit not found: {name} -> {sha}")
-        else:
-            todo.append((name, sha, live))
+    todo = [t for t in todo if t[1] in known]
 
     # One walk for every page instead of `git log <sha>..HEAD -- <sources>` per page.
     # That call was 16s of a 27s run on a 27-page wiki (measured 2026-09-24), which put
@@ -196,18 +241,14 @@ def main() -> int:
         elif line.strip() and line not in last_touch:
             last_touch[line.strip()] = cur
 
+    rels = {name: p.relative_to(root).as_posix() for name, p in pages.items()
+            if p.is_relative_to(root)}
+    changed = hunks(root, {last_touch[r] for r in rels.values() if r in last_touch}, docs)
+    bumps: list[tuple[str, str, str, list[str]]] = []
     for name, p in sorted(pages.items()):
-        try:
-            rel = str(p.relative_to(root))
-        except ValueError:
-            continue
+        rel = rels.get(name, "")
         last = last_touch.get(rel, "")
-        if not last:
-            continue
-        diff = git(root, "show", last, "--unified=0", "--", str(p)).splitlines()
-        ch = [l for l in diff
-              if (l.startswith("+") and not l.startswith("+++"))
-              or (l.startswith("-") and not l.startswith("---"))]
+        ch = changed.get((last, rel), []) if last else []
         if not ch or not all(re.match(r"^[+-]\s*(verified_at|updated):", l) for l in ch):
             continue  # body changed too -- there is evidence of reading
         old = next((re.match(r"^-\s*verified_at:\s*(\S+)", l).group(1)
@@ -218,8 +259,14 @@ def main() -> int:
             continue
         fm = frontmatter(p.read_text(encoding="utf-8")) or ""
         live = [sp for sp in re.findall(r"-\s*code:\s*(\S+)", fm) if (root / sp).exists()]
-        if not live or git(root, "cat-file", "-t", old) != "commit":
+        if live:
+            bumps.append((name, old, new, live))
+    known = commits(root, {old for _, old, _, _ in bumps})
+    for name, old, new, live in bumps:
+        if old not in known:
             continue
+        # Exact range per candidate. Few pages reach here, and `old..new` needs a
+        # real ancestry walk; deriving it from the topo list would undercount.
         skipped = git(root, "log", f"{old}..{new}", "--oneline", "--", *live)
         if skipped:
             unverified.append(f"{name} -- sha moved past {len(skipped.splitlines())} code commits with no body change ({old}->{new})")
