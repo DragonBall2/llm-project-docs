@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 9c0fca8
+verified_at: 0bd568f
 ---
 
 # Testing
@@ -27,16 +27,16 @@ otherwise get silently wrong.
 - SessionStart hook: silent when clean, names drifted pages when not, exit 0 always
 - commit hook: names the pages covering the commit; silent for docs-only, for uncovered
   code, and without a wiki
-- edit hook: shows a page's ⚠️ line before its file is edited, once per file per session,
-  silent without traps or a wiki
+- edit hook: shows a page's whole ⚠️ paragraph before its file is edited, once per file
+  per session, silent without traps or a wiki
 
 ## Mutation checks
 
 Passing is not the bar; failing when the logic is broken is. Every addition so far was
 checked by breaking the thing under test and watching the assertion fire: removing the
 unverified state, demoting a broken link, skipping the linter copy, disabling stale
-detection, disabling the edit hook's once-per-session guard, and listing pages without ⚠️
-lines. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
+detection, disabling the edit hook's once-per-session guard, listing pages without ⚠️ lines, and
+dropping the continuation lines of a wrapped ⚠️ paragraph. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
 and it was deleted.
 
 > ⚠️ When changing a history walk in [[lint]], compare stale and unverified counts against

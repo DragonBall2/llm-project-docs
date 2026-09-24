@@ -7,7 +7,7 @@ sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 9c0fca8
+verified_at: 0bd568f
 ---
 
 # Release

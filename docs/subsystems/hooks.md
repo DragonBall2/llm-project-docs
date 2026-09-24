@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/hooks/
-verified_at: 9c0fca8
+verified_at: 0bd568f
 ---
 
 # Hooks
@@ -18,7 +18,7 @@ is nothing specific to say.
 |---|---|---|---|
 | SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first |
 | PostToolUse, `if: Bash(git commit *)` | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
-| PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ lines of pages covering that file |
+| PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ paragraphs of pages covering that file |
 
 ## Why three and not one
 
@@ -51,8 +51,14 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 > ⚠️ `${CLAUDE_PLUGIN_ROOT}` is fine in the hooks manifest. It is exported to hook processes.
 > It is **not** exported to commands the agent runs via Bash; see [[vendored-linter]].
 
-## Not yet seen live
+## Seen live
 
-As of 2026-09-24 none of the three has been observed firing in a real session. They are
-exercised by `tests/test_roundtrip.py` the way Claude Code would invoke them, and the
-commit hook was run offline against gwiroman history and named Korean pages correctly.
+The edit hook and the commit hook both fired in a real session on 2026-09-24, in this
+repository. The first edit-hook run showed each trap cut off mid-sentence: pages wrap
+prose at about 90 columns, and the hook took the ⚠️ line alone. It now joins the
+continuation lines until a blank line, a new bullet, a heading, or a change of blockquote
+marker. The SessionStart hook has not been watched yet; the linter here runs in well under
+its 30 s budget.
+
+> ⚠️ Trap text in a page is one *paragraph*, not one line. Anything that extracts ⚠️
+> lines from a page must gather the wrapped continuation or it ships half sentences.
