@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 0bd568f
+verified_at: dbf5d0a
 ---
 
 # Testing
@@ -17,7 +17,8 @@ on PATH in this WSL shell. CI runs it on 3.10 and 3.12.
 ## What it does
 
 On a throwaway git repository: scaffold, then assert each outcome that the tool would
-otherwise get silently wrong.
+otherwise get silently wrong. The repo is removed afterwards, and so are the edit hook's
+once-per-session marker files the test creates in the temp dir.
 
 - a correct wiki passes and exits 0
 - moving code a page points at is reported stale
