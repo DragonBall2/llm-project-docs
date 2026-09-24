@@ -199,11 +199,15 @@ def main() -> int:
 
         # --- pre-edit hook: traps come to the edit ---------------------------
         sid = f"t{os.getpid()}"
-        page(repo, "concepts", "traps", "text\n\n> ⚠️ hello() must stay pure.\n\nmore",
+        page(repo, "concepts", "traps",
+             "text\n\n> ⚠️ hello() must stay pure,\n> or the cache lies.\n\nmore\n\n"
+             "- ⚠️ second trap\n- plain bullet\n",
              sha, "  - code: src/app.py")
         ctx = before_edit(repo, "src/app.py", sid)
-        assert "[[traps]]" in ctx and "hello() must stay pure" in ctx, \
-            f"edit hook should show the ⚠️ line of the page covering src/app.py:\n{ctx}"
+        assert "[[traps]]" in ctx and "hello() must stay pure, or the cache lies." in ctx, \
+            f"edit hook should show the whole wrapped ⚠️ paragraph, not its first line:\n{ctx}"
+        assert "second trap" in ctx and "plain bullet" not in ctx, \
+            f"a following bullet is not part of the trap:\n{ctx}"
         assert "[[overview]]" not in ctx, \
             f"a covering page with no ⚠️ line is not a trap, do not list it:\n{ctx}"
         assert before_edit(repo, "src/app.py", sid) == "", "same file, same session -> silent"

@@ -40,12 +40,37 @@ def _pages_for(root: Path, changed: list[str]):
     return mod.pages_for(root, changed)
 
 
+def _clean(line: str) -> str:
+    return line.strip().lstrip("> -*").strip()
+
+
 def traps(root: Path, page: str) -> list[str]:
+    """Each ⚠️ line plus its wrapped continuation, joined into one sentence.
+
+    Pages wrap prose at ~90 columns, so the first line alone ends mid-sentence.
+    A paragraph ends at a blank line, a new bullet, a heading, or a line that
+    drops the blockquote marker the ⚠️ line had.
+    """
     out = []
     for p in (root / "docs").rglob(f"{page}.md"):
-        for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
-            if any(m in line for m in MARK):
-                out.append(line.strip().lstrip("> -*").strip())
+        lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        i = 0
+        while i < len(lines):
+            if any(m in lines[i] for m in MARK):
+                quoted = lines[i].lstrip().startswith(">")
+                para = [_clean(lines[i])]
+                i += 1
+                while i < len(lines):
+                    raw = lines[i]
+                    if not raw.strip() or raw.lstrip().startswith(("#", "- ", "* ")) \
+                            or quoted != raw.lstrip().startswith(">") \
+                            or any(m in raw for m in MARK):
+                        break
+                    para.append(_clean(raw))
+                    i += 1
+                out.append(" ".join(para))
+            else:
+                i += 1
     return out[:MAX_LINES]
 
 
