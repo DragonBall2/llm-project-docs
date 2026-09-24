@@ -20,8 +20,13 @@ current. Those need reading.
 The naive version ran `git log <sha>..HEAD -- <sources>` per page. A pathspec log
 traverses all of history (~300 ms on a large repo), so 27 pages cost 38 s and the
 SessionStart hook hit its 30 s timeout and **silently said nothing** (measured
-2026-09-24, on gwiroman). Now it is 15.5 s. Still not fast; result caching is the next
-candidate.
+2026-09-24, on gwiroman). Now it is 15.5 s.
+
+> ⚠️ Measured 2026-09-24: that 15.5 s is the **filesystem**, not the algorithm. The same
+> gwiroman checkout cloned to ext4 lints in 0.2 s; on the WSL 9p mount of `D:` every git
+> process pays ~50 ms to start and every loose object is a slow file open (3,180 of them).
+> `git gc` alone took the topo walk from 5.4 s to 0.12 s and the whole lint to 4.7 s. Do
+> not optimise the walk further for that number; pack the repo or move it off 9p.
 
 **Walk 1, stale** (`plugin/scripts/lint.py:158`): one `git log --topo-order --name-only HEAD`.
 For each page, count the commits listed *before* its sha whose files match a live source.
