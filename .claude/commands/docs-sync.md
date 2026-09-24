@@ -1,0 +1,68 @@
+# /docs-sync -- reflect code changes into the docs wiki
+
+Follow **Workflow > /docs-sync** in `docs/CLAUDE.md`.
+
+## Procedure
+
+### 1. Baseline
+
+The **oldest** `verified_at` sha across `docs/**/*.md` frontmatter.
+
+### 2. First check whether any code changed
+
+**Do not count docs commits.** The docs live in the same repository, so editing only
+docs still moves HEAD. Without this filter you keep seeing "N commits behind" when
+there is nothing to do.
+
+```bash
+git log <baseline>..HEAD --oneline -- . ':(exclude)docs' ':(exclude).claude' ':(exclude)CLAUDE.md'
+```
+
+**If it is empty, stop: "no code changes, /docs-sync not needed".**
+Leave `verified_at` alone -- the code has not moved, so it is still valid.
+
+### 2-1. Collect changed files
+
+```bash
+git log <baseline>..HEAD --name-only --pretty=format: -- . ':(exclude)docs' ':(exclude).claude' ':(exclude)CLAUDE.md' \
+  | sort -u | grep -v '^$'
+```
+
+> Git quotes non-ASCII paths by default (`core.quotepath`), so a path with
+> non-Latin characters comes back escaped and a naive `grep '^docs/'` misses it.
+> Use `-z`, or `git -c core.quotepath=false`, when a filename might not be ASCII.
+
+### 3. Select affected pages
+
+Match changed file paths against each page's `sources[].code` by **prefix**.
+Report the selection first: N changed files -> M affected pages.
+
+### 4. Update
+
+For each page, **read the actual diff, not the commit message**
+(`git diff <baseline>..HEAD -- <path>`).
+
+- Prose still correct -> move `verified_at` only
+- Prose wrong -> fix the body, and move both `updated` and `verified_at`
+- A cited `file:line` that shifted -> new line number
+
+> ⚠️ `verified_at` is written *before* you commit, so you cannot know your own sha yet.
+> If you write the parent sha, the page is stale by exactly your own commit the moment
+> it lands. Expect "stale by 1" right after a docs commit and read it as such -- check
+> the body against the code, then move the sha forward.
+
+### 5. Unclassified changes
+
+List files that matched no page and **propose new pages**. Do not create them without
+approval.
+
+### 6. Finish
+
+- Update `docs/index.md` (if pages were added)
+- Append to `docs/log.md`
+- Verify with `/docs-lint`
+
+## Principles
+
+- **Only read what changed.** Do not re-read the whole codebase every time
+- State lives in `verified_at` and nowhere else. Do not add a status file
