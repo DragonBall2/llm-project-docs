@@ -1,6 +1,7 @@
 # llm-project-docs docs/ wiki contract
 
-> This directory is a **wiki maintained by an LLM**, not a pile of flat documents.
+> This directory is a **wiki maintained by an LLM**: linked markdown pages, not a pile of
+> flat documents and not a separate site.
 > This file defines the rules. **Change the structure only with the user's approval.**
 
 The repository root `CLAUDE.md` tells the agent *how to work*. This file says *how to

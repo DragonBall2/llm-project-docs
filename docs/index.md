@@ -4,7 +4,8 @@ A Claude Code plugin that turns a repository's `docs/` into a wiki the agent mai
 with a per-page `verified_at` so drift from the code is computable. This wiki documents
 the plugin itself, using itself.
 
-This directory is a wiki maintained by an LLM. The rules are in [`CLAUDE.md`](CLAUDE.md).
+This directory is a wiki maintained by an LLM: linked markdown pages, nothing outside the
+repository. The rules are in [`CLAUDE.md`](CLAUDE.md).
 
 ## Start here
 
