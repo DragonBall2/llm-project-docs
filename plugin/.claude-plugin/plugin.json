@@ -1,0 +1,7 @@
+{
+  "name": "project-docs-setup",
+  "displayName": "Project Docs Wiki",
+  "description": "Turn a repository's docs/ into an LLM-maintained wiki: categories by access pattern, per-page verified_at drift tracking, and /docs-sync, /docs-lint, /docs-query, /docs-status.",
+  "version": "1.0.0",
+  "author": { "name": "DragonBall2" }
+}
