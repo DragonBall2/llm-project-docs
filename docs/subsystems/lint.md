@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 70f1eb5
+verified_at: 4c96848
 ---
 
 # lint.py
@@ -29,7 +29,7 @@ SessionStart hook hit its 30 s timeout and **silently said nothing** (measured
 > batching the remaining per-page calls took it to 2.1 s. What is left is 12 process
 > starts. Do not optimise the walk further for that number; move the repo off 9p.
 
-**Walk 1, stale** (`plugin/scripts/lint.py:203`): one `git log --topo-order --name-only HEAD`.
+**Walk 1, stale** (`plugin/scripts/lint.py:208`): one `git log --topo-order --name-only HEAD`.
 For each page, count the commits listed *before* its sha whose files match a live source.
 
 > ⚠️ `--topo-order` is what makes this exact, not an optimisation. Topological order
@@ -51,7 +51,7 @@ the count matters more than the work.
 ## Non-ASCII page names
 
 > ⚠️ Every git call that returns paths needs `-c core.quotepath=false`
-> (`plugin/scripts/lint.py:231`). By default git escapes non-ASCII paths as
+> (`plugin/scripts/lint.py:236`). By default git escapes non-ASCII paths as
 > `"\352\262\214..."`, so a Korean page name never matches the path looked up. The first
 > time this regressed, unverified went from 6 to 0 and **looked like an improvement**.
 > Compare counts against the previous implementation whenever you touch a walk.

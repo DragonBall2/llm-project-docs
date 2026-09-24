@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 70f1eb5
+verified_at: 4c96848
 ---
 
 # Testing
@@ -32,6 +32,8 @@ once-per-session marker files the test creates in the temp dir.
   code, and without a wiki
 - edit hook: shows a page's whole ⚠️ paragraph before its file is edited, once per file
   per session, silent without traps or a wiki
+- an outdated linter copy: the session hook says so and names the fix, `--lint-only`
+  restores the plugin's file byte for byte and touches nothing else, then the notice stops
 
 ## Mutation checks
 
@@ -40,7 +42,8 @@ checked by breaking the thing under test and watching the assertion fire: removi
 unverified state, demoting a broken link, skipping the linter copy, disabling stale
 detection, disabling the edit hook's once-per-session guard, listing pages without ⚠️ lines, and
 dropping the continuation lines of a wrapped ⚠️ paragraph, emptying the batched sha
-existence check, and emptying the batched `git show` parse. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
+existence check, emptying the batched `git show` parse, disabling the outdated-copy
+notice, and letting `--lint-only` write the other scaffold files. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
 and it was deleted.
 
 > ⚠️ When changing a history walk in [[lint]], compare stale and unverified counts against
