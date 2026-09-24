@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: tests/test_roundtrip.py
-verified_at: dbf5d0a
+verified_at: 70f1eb5
 ---
 
 # Testing
@@ -24,6 +24,8 @@ once-per-session marker files the test creates in the temp dir.
 - moving code a page points at is reported stale
 - a page with no `code:` sources is unverified, not clean
 - a broken `[[link]]` exits 1 and is named
+- a `verified_at` the repository does not contain exits 1 and is named
+- a `verified_at` moved with no body change is reported as unverified, never failed
 - `--json` emits counts only
 - SessionStart hook: silent when clean, names drifted pages when not, exit 0 always
 - commit hook: names the pages covering the commit; silent for docs-only, for uncovered
@@ -37,7 +39,8 @@ Passing is not the bar; failing when the logic is broken is. Every addition so f
 checked by breaking the thing under test and watching the assertion fire: removing the
 unverified state, demoting a broken link, skipping the linter copy, disabling stale
 detection, disabling the edit hook's once-per-session guard, listing pages without ⚠️ lines, and
-dropping the continuation lines of a wrapped ⚠️ paragraph. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
+dropping the continuation lines of a wrapped ⚠️ paragraph, emptying the batched sha
+existence check, and emptying the batched `git show` parse. One of those runs found a redundant guard (`NOT_CODE`) that nothing could observe,
 and it was deleted.
 
 > ⚠️ When changing a history walk in [[lint]], compare stale and unverified counts against

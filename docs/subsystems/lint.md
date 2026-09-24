@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 9c0fca8
+verified_at: 70f1eb5
 ---
 
 # lint.py
@@ -25,10 +25,11 @@ SessionStart hook hit its 30 s timeout and **silently said nothing** (measured
 > ⚠️ Measured 2026-09-24: that 15.5 s is the **filesystem**, not the algorithm. The same
 > gwiroman checkout cloned to ext4 lints in 0.2 s; on the WSL 9p mount of `D:` every git
 > process pays ~50 ms to start and every loose object is a slow file open (3,180 of them).
-> `git gc` alone took the topo walk from 5.4 s to 0.12 s and the whole lint to 4.7 s. Do
-> not optimise the walk further for that number; pack the repo or move it off 9p.
+> `git gc` alone took the topo walk from 5.4 s to 0.12 s and the whole lint to 4.7 s;
+> batching the remaining per-page calls took it to 2.1 s. What is left is 12 process
+> starts. Do not optimise the walk further for that number; move the repo off 9p.
 
-**Walk 1, stale** (`plugin/scripts/lint.py:158`): one `git log --topo-order --name-only HEAD`.
+**Walk 1, stale** (`plugin/scripts/lint.py:203`): one `git log --topo-order --name-only HEAD`.
 For each page, count the commits listed *before* its sha whose files match a live source.
 
 > ⚠️ `--topo-order` is what makes this exact, not an optimisation. Topological order
@@ -37,15 +38,20 @@ For each page, count the commits listed *before* its sha whose files match a liv
 > `sha..HEAD`. Plain reverse-chronological order **undercounts** commits merged in from a
 > side branch, which is the dangerous direction for a staleness check.
 
-**Walk 2, silent bump** (`plugin/scripts/lint.py:190`): one `git log --name-only -- docs/`
-to find each page's last touching commit, then `git show` that commit and check whether
-the only changed lines were `verified_at` / `updated`. If so, and code commits exist
-between old and new sha, report unverified case 3.
+**Walk 2, silent bump**: one `git log --name-only -- docs/` to find each page's last
+touching commit, then one `git show --unified=0` over all of those commits at once and
+check, per page, whether the only changed lines were `verified_at` / `updated`. If so, and
+code commits exist between old and new sha, report unverified case 3. That last range
+check is one `git log old..new` per candidate and stays exact on purpose.
+
+Every sha existence check goes through one `git cat-file --batch-check`. Total: 12 git
+processes for 27 pages, down from 70. On a slow mount each process start is ~50 ms, so
+the count matters more than the work.
 
 ## Non-ASCII page names
 
 > ⚠️ Every git call that returns paths needs `-c core.quotepath=false`
-> (`plugin/scripts/lint.py:186`). By default git escapes non-ASCII paths as
+> (`plugin/scripts/lint.py:231`). By default git escapes non-ASCII paths as
 > `"\352\262\214..."`, so a Korean page name never matches the path looked up. The first
 > time this regressed, unverified went from 6 to 0 and **looked like an improvement**.
 > Compare counts against the previous implementation whenever you touch a walk.

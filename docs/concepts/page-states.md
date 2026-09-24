@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 9c0fca8
+verified_at: 70f1eb5
 ---
 
 # Page states
@@ -29,7 +29,7 @@ is in [[lint]].
 
 ## unverified is a third state, not "fine"
 
-Three cases, all at `plugin/scripts/lint.py:134` onward:
+Three cases, all at `plugin/scripts/lint.py:175` onward:
 
 1. The page has no `code:` sources. Nothing to compare against. Normal for concept pages
 2. Every `code:` source has disappeared from the tree
@@ -45,7 +45,7 @@ not do that move automatically.
 
 Broken `[[link]]`, orphan page, missing frontmatter key (`plugin/scripts/lint.py:22`),
 `code:` source that does not exist, citation past end of file, and a `verified_at` sha the
-repository does not contain (`plugin/scripts/lint.py:140`). That last one is deliberately a
+repository does not contain (`plugin/scripts/lint.py:186`). That last one is deliberately a
 problem and not unverified: a sha that is not in the repo is a broken claim, not a weak one.
 
 > ⚠️ `verified_at` is written *before* you commit, so a fresh docs commit shows every page
