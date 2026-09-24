@@ -33,8 +33,9 @@ from pathlib import Path
 
 VENDORED = Path(".claude") / "scripts" / "docs-lint.py"
 PLUGIN_LINT = Path(__file__).resolve().parent.parent / "scripts" / "lint.py"
-RECOPY = ("python3 \"$(find ~/.claude/plugins -name scaffold.py -path '*project-docs*' "
-          "| head -1)\" --root . --lint-only")
+# The hook knows exactly where its own scaffold.py is; a `find` over the plugin cache
+# would also see every older version still lying there and may pick one of those.
+RECOPY = f'python3 "{PLUGIN_LINT.with_name("scaffold.py")}" --root . --lint-only'
 
 
 def lint_version(path: Path) -> str:
@@ -53,6 +54,13 @@ def main() -> int:
     if not (root / "docs").is_dir() or not linter.is_file():
         return 0
 
+    # The linter is vendored, so a fix to it reaches this repo only by re-copying.
+    # An old copy has no LINT_VERSION at all, which counts as "differs". Checked
+    # before running it: a copy too old to run is the one that needs this most.
+    mine, theirs = lint_version(PLUGIN_LINT), lint_version(linter)
+    outdated = bool(mine) and mine != theirs
+
+    counts: dict = {}
     try:
         r = subprocess.run(
             [sys.executable, str(linter), "--root", str(root), "--json"],
@@ -60,16 +68,14 @@ def main() -> int:
         )
         counts = json.loads(r.stdout.strip().splitlines()[-1])
     except Exception:
-        # A broken or missing linter must not announce itself at every session.
-        return 0
+        # A broken linter must not announce itself at every session -- unless it
+        # is broken because it is old, and that is what `outdated` already says.
+        if not outdated:
+            return 0
 
     pages = counts.get("stale_pages") or []
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
-    # The linter is vendored, so a fix to it reaches this repo only by re-copying.
-    # An old copy has no LINT_VERSION at all, which counts as "differs".
-    mine, theirs = lint_version(PLUGIN_LINT), lint_version(linter)
-    outdated = bool(mine) and mine != theirs
     if not stale and not problems and not outdated:
         return 0
 

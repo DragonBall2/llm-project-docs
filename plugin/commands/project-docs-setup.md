@@ -43,8 +43,8 @@ becomes the bottleneck; coarser and progressive disclosure stops paying.
 ## Step 2: scaffold
 
 ```bash
-SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | head -1)
-python "$SCAFFOLD" --root <repo> --name "<project>" [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
+SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | sort -V | tail -1)
+python3 "$SCAFFOLD" --root <repo> --name "<project>" [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
 ```
 
 Existing files are left alone. Afterwards fill in the two TODOs in `docs/CLAUDE.md`: the
@@ -110,7 +110,7 @@ Fix **every stale document link** in the root CLAUDE.md and README (`docs/SPEC.m
 ## Step 6: verify
 
 ```bash
-python <repo>/.claude/scripts/docs-lint.py --root <repo> [--exclude raw,promo]
+python3 <repo>/.claude/scripts/docs-lint.py --root <repo> [--exclude raw,promo]
 ```
 
 Run it until clean. Read for what the script cannot see — contradictions between pages,

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Integrity check for a docs/ wiki.
 
-  python lint.py --root .
-  python lint.py --root . --quiet          summary only
-  python lint.py --root . --exclude raw,promo
+  python3 lint.py --root .
+  python3 lint.py --root . --quiet          summary only
+  python3 lint.py --root . --exclude raw,promo
 
 Only checks what a script can decide mechanically. Contradictions between pages and
 duplicated prose need reading — see the /docs-lint command for those.

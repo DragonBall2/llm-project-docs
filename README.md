@@ -223,14 +223,14 @@ ln -s "$PWD/llm-project-docs/plugin/commands/project-docs-setup.md" ~/.claude/co
 Or call the scripts directly:
 
 ```bash
-python plugin/scripts/scaffold.py --root /path/to/repo --name MyApp
-python /path/to/repo/.claude/scripts/docs-lint.py --root /path/to/repo
+python3 plugin/scripts/scaffold.py --root /path/to/repo --name MyApp
+python3 /path/to/repo/.claude/scripts/docs-lint.py --root /path/to/repo
 ```
 
 ## Tests
 
 ```bash
-python tests/test_roundtrip.py
+python3 tests/test_roundtrip.py
 ```
 
 Scaffolds a throwaway git repository, runs the vendored linter from the path the

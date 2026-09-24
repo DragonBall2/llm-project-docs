@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Scaffold -> lint round trip, on a throwaway git repository.
 
-    python tests/test_roundtrip.py
+    python3 tests/test_roundtrip.py
 
 Asserts the outcomes that matter, because each one is a thing the tool would
 silently get wrong:

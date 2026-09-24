@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Scaffold a docs/ wiki inside a project repository.
 
-  python scaffold.py --root /path/to/repo --name "MyApp"
-  python scaffold.py --root . --categories concepts,architecture,reference,operations
-  python scaffold.py --root . --dry-run
+  python3 scaffold.py --root /path/to/repo --name "MyApp"
+  python3 scaffold.py --root . --categories concepts,architecture,reference,operations
+  python3 scaffold.py --root . --dry-run
 
 What it creates (boilerplate only -- filling in the content is the LLM's job):
   docs/CLAUDE.md            wiki contract: page format, workflow, code-path definition
@@ -265,7 +265,7 @@ CMD_LINT = """# /docs-lint -- integrity check for the docs wiki
 Run the script for anything a script can decide.
 
 ```bash
-python {LINT_REL} --root .
+python3 {LINT_REL} --root .
 ```
 
 Catches: broken `[[links]]`, orphan pages, broken sources (`code:` paths),
@@ -357,7 +357,7 @@ Stale and unverified pages, unprocessed `raw/` material, unfinished `- [ ]` item
 last 3 entries of `docs/log.md`.
 
 ```bash
-python {LINT_REL} --root . --quiet
+python3 {LINT_REL} --root . --quiet
 ```
 
 ## 6. Size
@@ -557,7 +557,7 @@ def main() -> int:
         print(f"  = {p.relative_to(root)} (exists, skipped)")
     print()
     print("Next: fill in the pages per category and clear the TODOs in docs/index.md.")
-    print(f"      When done, verify with: python {LINT_REL} --root .")
+    print(f"      When done, verify with: python3 {LINT_REL} --root .")
     return 0
 
 

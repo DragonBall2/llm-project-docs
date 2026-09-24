@@ -3,7 +3,7 @@
 Run the script for anything a script can decide.
 
 ```bash
-python .claude/scripts/docs-lint.py --root .
+python3 .claude/scripts/docs-lint.py --root .
 ```
 
 Catches: broken `[[links]]`, orphan pages, broken sources (`code:` paths),

@@ -93,8 +93,8 @@ Two situations:
 ## Scripts
 
 ```bash
-python <plugin>/scripts/scaffold.py --root . --name MyApp
-python .claude/scripts/docs-lint.py --root .          # after scaffolding
+python3 <plugin>/scripts/scaffold.py --root . --name MyApp
+python3 .claude/scripts/docs-lint.py --root .          # after scaffolding
 ```
 
 `scaffold.py` writes boilerplate only (contract, index, log, the four commands) and
@@ -110,8 +110,8 @@ categories and filling in content is the LLM's job.
 To locate `scaffold.py` regardless of how this plugin was installed:
 
 ```bash
-SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | head -1)
-python "$SCAFFOLD" --root . --name MyApp
+SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | sort -V | tail -1)
+python3 "$SCAFFOLD" --root . --name MyApp
 ```
 
 `lint.py` only reports what is mechanically decidable — broken `[[links]]`, orphans,
