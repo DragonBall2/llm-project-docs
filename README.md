@@ -9,6 +9,10 @@ an LLM — and, crucially, one that can tell you **which pages have gone out of 
 "Wiki" here means linked markdown pages inside `docs/`, not a separate site: no server,
 no web UI, edited mostly by the agent and reviewed like any other file in a commit.
 
+![Three hooks: traps before an edit, affected pages after a commit, stale pages at session start](demo.gif)
+
+<sup>Hook output is real, from this repository. The terminal around it is scripted, and one long trap in the first scene is trimmed.</sup>
+
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
 /plugin install llm-project-docs@llm-project-docs
