@@ -1,5 +1,8 @@
 # llm-project-docs
 
+[![test](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml/badge.svg)](https://github.com/DragonBall2/llm-project-docs/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Documentation for a living codebase, kept in the repository, maintained by an LLM — and,
 crucially, one that can tell you **which pages have gone out of date**.
 
