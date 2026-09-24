@@ -8,7 +8,7 @@ crucially, one that can tell you **which pages have gone out of date**.
 
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
-/plugin install project-docs-setup
+/plugin install llm-project-docs@llm-project-docs
 /project-docs-setup
 ```
 
