@@ -52,11 +52,18 @@ moving anything.
 Size sense: **20-40 pages, median 1,500-2,500 characters.** Finer than that and `index.md`
 becomes the bottleneck; coarser and progressive disclosure stops paying.
 
+**Decide the language of the pages, do not ask.** In order: a language named in the
+arguments, else the language the existing documentation is written in, else the language
+the user is talking to you in. Pass it as `--lang` so it is recorded in `docs/CLAUDE.md`;
+that line is what keeps the next session, and a teammate's agent, writing in the same
+language. Only the prose is in that language; frontmatter keys, links, paths and commands
+are not translated.
+
 ## Step 2: scaffold
 
 ```bash
 SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | sort -V | tail -1)
-python3 "$SCAFFOLD" --root <repo> --name "<project>" [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
+python3 "$SCAFFOLD" --root <repo> --name "<project>" --lang <language> [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
 ```
 
 Existing files are left alone. Afterwards fill in the two TODOs in `docs/CLAUDE.md`: the

@@ -115,8 +115,12 @@ def main() -> int:
         git(repo, "commit", "-qm", "init")
 
         # --- scaffold -------------------------------------------------------
-        r = run(sys.executable, str(SCAFFOLD), "--root", ".", "--name", "T", cwd=repo)
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", "--name", "T", "--lang", "Korean", cwd=repo)
         assert r.returncode == 0, f"scaffold failed:\n{r.stderr}"
+        contract = (repo / "docs" / "CLAUDE.md").read_text(encoding="utf-8")
+        assert "Pages are written in **Korean**" in contract, "--lang must land in the contract"
+        assert contract.count("Korean") == 2 and "verified_at" in contract, \
+            "only the language line changes; the rest of the contract is not translated"
 
         for rel in ("docs/CLAUDE.md", "docs/index.md", "docs/log.md",
                     "docs/raw/README.md", VENDORED,

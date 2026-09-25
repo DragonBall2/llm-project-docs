@@ -58,7 +58,8 @@ def plain_pathspec(excludes: list[str]) -> str:
     return " ".join(f":(exclude){e}" for e in excludes)
 
 
-def claude_md(name: str, cats: list[tuple[str, str, str]], excludes: list[str]) -> str:
+def claude_md(name: str, cats: list[tuple[str, str, str]], excludes: list[str],
+              lang: str = "English") -> str:
     by_mode: dict[str, list[str]] = {}
     for slug, _desc, mode in cats:
         by_mode.setdefault(mode, []).append(f"`{slug}`")
@@ -86,6 +87,13 @@ A single large document loses three things.
 
 So every page carries `verified_at` (the commit it was checked against), and an update
 reads **only what changed since that commit** instead of re-reading everything.
+
+## Language
+
+Pages are written in **{lang}**. Frontmatter keys, `[[link]]` targets, file paths and the
+`/docs-*` commands stay as they are, whatever the language of the prose. Page file names
+may be in {lang}; the linter and hooks handle non-ASCII names. To change the language,
+change this line -- every agent working on this repository reads it before writing.
 
 ## Pages are categorised by access pattern
 
@@ -461,6 +469,9 @@ def main() -> int:
     ap.add_argument("--exclude", default=",".join(DEFAULT_EXCLUDES),
                     help="excluded when deciding what counts as code (comma separated)")
     ap.add_argument("--sha", default="", help="baseline commit for verified_at (default: HEAD)")
+    ap.add_argument("--lang", default="English",
+                    help="language the pages are written in, recorded in docs/CLAUDE.md "
+                         "(the setup procedure infers it; this only fills the blank)")
     ap.add_argument("--force", action="store_true", help="overwrite existing files")
     ap.add_argument("--lint-only", action="store_true",
                     help="only re-copy the linter into an already scaffolded repo")
@@ -495,7 +506,7 @@ def main() -> int:
     )
 
     files: dict[Path, str] = {
-        docs / "CLAUDE.md": claude_md(name, cats, excludes),
+        docs / "CLAUDE.md": claude_md(name, cats, excludes, args.lang),
         docs / "index.md": INDEX_TMPL.format(name=name, sections=sections),
         docs / "log.md": LOG_TMPL.format(today=date.today().isoformat(),
                                          cats=" - ".join(c[0] for c in cats), sha=sha,

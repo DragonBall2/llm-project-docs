@@ -82,6 +82,7 @@ silently misses it. Missing is the dangerous failure.
 /project-docs-setup                      in the current repository
 /project-docs-setup /path/to/repo
 /project-docs-setup --categories concepts,reference,operations
+/project-docs-setup --lang Korean         pages in Korean; keys, links and commands stay as they are
 ```
 
 Two situations:
