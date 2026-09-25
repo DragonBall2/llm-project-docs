@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/hooks/
-verified_at: e188991
+verified_at: 2ec125b
 ---
 
 # Hooks
@@ -17,7 +17,7 @@ is nothing specific to say.
 | Event | Script | Sees | Says |
 |---|---|---|---|
 | SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first; an outdated linter copy |
-| PostToolUse, `if: Bash(git commit *)` | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
+| PostToolUse on Bash | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
 | PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ paragraphs of pages covering that file |
 
 ## Why three and not one
@@ -37,6 +37,11 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The session hook calls the target repo's own `.claude/scripts/docs-lint.py`, not the
   plugin's own copy, with a 30 s timeout (`plugin/hooks/docs-notice.py:47`). A linter
   slower than that means the hook silently says nothing. That happened; see [[lint]]
+- The commit hook decides for itself whether a Bash call was a commit: the command
+  mentions `git ... commit` and HEAD differs from the last one it reported this session
+  (marker file keyed by `session_id`, like the edit hook). Both conditions matter: the
+  regex alone re-reports the last commit whenever a heredoc contains those words, and
+  HEAD alone would fire on a `git pull`
 - The commit hook owns `pages_for()` (`plugin/hooks/docs-after-commit.py:40`),
   the prefix match from changed paths to `sources[].code`. the edit hook imports
   it from the sibling file rather than copying it
@@ -47,6 +52,11 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The commit hook does not filter "is this code?". A docs-only commit is silent because
   no page lists a docs path as a `code:` source. A second filter would be a weaker copy of
   a decision the page already made, and would override a page that deliberately lists one
+
+> ⚠️ Do not put the commit test in hooks.json as `if: "Bash(git commit *)"`. That is a
+> permission-style pattern and matches a command that *starts* with `git commit`; the first
+> external user chained `git add && git commit && git push` and the hook never fired. Tests
+> call the script directly, so they could not see it. Decide in the script.
 
 > ⚠️ `${CLAUDE_PLUGIN_ROOT}` is fine in the hooks manifest. It is exported to hook processes.
 > It is **not** exported to commands the agent runs via Bash; see [[vendored-linter]].
