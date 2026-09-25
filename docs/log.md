@@ -53,3 +53,16 @@ seen in a real session, a 15.5 s lint, a PreToolUse idea, and no users. 24 commi
 
 Open: no external user yet, Windows-native `python3` untested, remaining 2.1 s on
 gwiroman is 12 process starts on the 9p mount and only moving the repo fixes it.
+
+## [2026-09-25] first external report | commit hook silent on chained commands
+
+- A user on another project chained `git add && git commit && git push` and the commit
+  hook never fired: `if: "Bash(git commit *)"` in hooks.json only matches a command that
+  starts with `git commit`. The round-trip test calls the script directly and could not
+  see it
+- 1.3.4 (`2ec125b`): the script decides. Command mentions `git ... commit` and HEAD
+  differs from the last commit reported in this session. Tests now drive the hook with
+  the chained form and check dedup and the non-commit case; both guards were mutated
+  and caught. Recorded as a ⚠️ in [[hooks]]
+- Same day: README leads with "the agent that changed the code updates the docs, in the
+  same turn"; demo.gif is one real turn drawn as the TUI (`3973bb6`)
