@@ -1,7 +1,15 @@
 #!/usr/bin/env python3
 """After a code commit, tell the agent which pages describe what it just changed.
 
-Fires on `git commit` (PostToolUse). Works out which wiki pages point at the files
+Fires after every Bash call (PostToolUse) and decides here whether that call was a
+commit: the command mentions `git ... commit` and HEAD is not the one this session
+last reported. A `matcher`/`if` pattern in hooks.json cannot do this -- permission-
+style patterns match a command that *starts* with `git commit`, and the first external
+user chained `git add && git commit && git push` and got nothing. HEAD-based dedup also
+stops a heredoc that merely contains the words "git commit" from reporting the last
+commit again.
+
+Works out which wiki pages point at the files
 in that commit and hands the list back through `additionalContext`, so the agent --
 which just made the change and knows why -- can update those pages in the same turn.
 
@@ -27,7 +35,10 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
+
+COMMIT_RE = re.compile(r"\bgit\b[^|;&\n]*\bcommit\b")
 
 def git(root: Path, *args: str) -> str:
     try:
@@ -61,6 +72,9 @@ def main() -> int:
     except Exception:
         return 0
 
+    if not COMMIT_RE.search((payload.get("tool_input") or {}).get("command") or ""):
+        return 0
+
     root = Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
     top = git(root, "rev-parse", "--show-toplevel")
     if top:
@@ -71,6 +85,12 @@ def main() -> int:
     sha = git(root, "rev-parse", "--short", "HEAD")
     if not sha:
         return 0
+    # Once per commit per session: a later command that mentions "commit" without
+    # moving HEAD (a heredoc, a `git log`) must not repeat the last report.
+    seen = Path(tempfile.gettempdir()) / f"docs-after-commit-{payload.get('session_id', 'x')}"
+    if seen.exists() and seen.read_text(encoding="utf-8").strip() == sha:
+        return 0
+    seen.write_text(sha + "\n", encoding="utf-8")
 
     files = [f for f in git(root, "show", "--name-only", "--pretty=format:", "-z", "HEAD").split("\0") if f]
     if not files:

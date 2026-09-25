@@ -73,11 +73,16 @@ def hook(repo: Path) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, env=env)
 
 
-def after_commit(repo: Path) -> str:
-    """Run the post-commit hook as Claude Code would, return additionalContext."""
+def after_commit(repo: Path, command: str = "git add -A && git commit -qm x && git push",
+                 session: str = "t") -> str:
+    """Run the post-commit hook as Claude Code would, return additionalContext.
+
+    The default command is chained on purpose: that is how the first external user
+    ran it, and a `Bash(git commit *)` pattern in hooks.json never matched it.
+    """
     payload = _json_mod.dumps({"cwd": str(repo), "hook_event_name": "PostToolUse",
-                               "tool_name": "Bash",
-                               "tool_input": {"command": "git commit -m x"}})
+                               "tool_name": "Bash", "session_id": session,
+                               "tool_input": {"command": command}})
     r = subprocess.run([sys.executable, str(COMMIT_HOOK)], input=payload,
                        capture_output=True, text=True, cwd=repo)
     assert r.returncode == 0, "commit hook must never fail a commit"
@@ -185,6 +190,12 @@ def main() -> int:
             f"commit hook should name both pages that point at src/app.py:\n{ctx}"
         assert "src/app.py" in ctx, f"commit hook should name the changed file:\n{ctx}"
         assert "verified_at" in ctx, "commit hook should say what to do"
+        assert after_commit(repo) == "", "same HEAD again in this session -> silent"
+        assert after_commit(repo, session="t2") != "", "a new session reports it once more"
+        assert after_commit(repo, "git status && ls", session="t3") == "", \
+            "a command that is not a commit must be silent even with a new HEAD"
+        assert after_commit(repo, "cat <<EOF\nsee git commit docs\nEOF", session="t4") != "", \
+            "the words alone do pass the regex; HEAD dedup is what stops repeats"
 
         # docs-only commit is not drift -> silent
         (repo / "docs" / "concepts" / "glossary.md").write_text(
@@ -281,6 +292,8 @@ def main() -> int:
         shutil.rmtree(tmp, ignore_errors=True)
         # The edit hook keeps a once-per-session marker in the temp dir; drop ours.
         for m in Path(tempfile.gettempdir()).glob(f"docs-before-edit-t{os.getpid()}*"):
+            m.unlink(missing_ok=True)
+        for m in Path(tempfile.gettempdir()).glob("docs-after-commit-t*"):
             m.unlink(missing_ok=True)
 
 

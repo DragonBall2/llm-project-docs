@@ -18,7 +18,6 @@
         "hooks": [
           {
             "type": "command",
-            "if": "Bash(git commit *)",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/docs-after-commit.py\""
           }
         ]
