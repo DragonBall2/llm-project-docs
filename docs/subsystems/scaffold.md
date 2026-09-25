@@ -2,12 +2,12 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-09-25
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: e188991
+verified_at: 12be403
 ---
 
 # scaffold.py
@@ -31,6 +31,12 @@ Given `--root`, `--name`, optional `--categories` and `--exclude`:
 Existing files are left alone unless `--force`. `--dry-run` prints the plan.
 `--sha` overrides the baseline (default HEAD). `--lint-only` re-copies the linter into an
 already scaffolded repository and touches nothing else; see [[vendored-linter]].
+`--lang` fills the Language section of the contract; the procedure infers the value
+(argument, existing docs, the user's language) rather than asking. Nothing else is
+translated: keys, links, paths, commands, linter and hook text stay English, and the
+agent reports in the user's language anyway. Translating templates would mean one
+500-line copy per language, synced by hand, which is what the gwiroman linter fork
+already costs.
 
 ## Code is an exclude list
 

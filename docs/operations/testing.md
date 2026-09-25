@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 2ec125b
+verified_at: 12be403
 ---
 
 # Testing

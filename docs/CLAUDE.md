@@ -19,6 +19,13 @@ A single large document loses three things.
 So every page carries `verified_at` (the commit it was checked against), and an update
 reads **only what changed since that commit** instead of re-reading everything.
 
+## Language
+
+Pages are written in **English**. Frontmatter keys, `[[link]]` targets, file paths and the
+`/docs-*` commands stay as they are, whatever the language of the prose. Page file names
+may be in English; the linter and hooks handle non-ASCII names. To change the language,
+change this line -- every agent working on this repository reads it before writing.
+
 ## Pages are categorised by access pattern
 
 | | Categories |
