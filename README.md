@@ -82,6 +82,43 @@ snippets, and `raw/` explicitly refuses copies of code or of other documents.
 
 ## What ends up in `docs/`
 
+After `/project-docs-setup` on a mid-sized service, the repository has a `docs/` like this.
+Every page points at the code it describes and records the commit it was checked against.
+
+```
+docs/
+├── CLAUDE.md                     the contract: page format, language, what to update when
+├── index.md                      start here -- reading order, then the full contents
+├── log.md                        append-only work log
+├── raw/
+│   └── 2026-03-14_launch-postmortem.md      source material that is in neither code nor a page
+├── concepts/
+│   ├── tenant.md
+│   └── content-lifecycle.md
+├── architecture/
+│   ├── system-overview.md
+│   ├── data-model.md             sources: server/db/schema.js
+│   └── request-flow.md
+├── subsystems/
+│   ├── auth.md                   sources: server/auth/
+│   ├── content-pipeline.md       sources: server/routes/content.js, worker/ingest.js
+│   ├── search.md
+│   └── billing.md
+├── decisions/
+│   ├── why-postgres-not-mongo.md
+│   └── rate-limiter-defaults.md
+├── reference/
+│   ├── api-endpoints.md
+│   ├── env-vars.md
+│   └── db-schema.md
+├── operations/
+│   ├── deploy.md
+│   ├── monitoring.md
+│   └── incident-runbook.md
+└── history/
+    └── v1-to-v2-migration.md
+```
+
 | Directory | Holds | Read when |
 |---|---|---|
 | `concepts/` | domain and product concepts; mostly survive code changes | you do not know where to look |
