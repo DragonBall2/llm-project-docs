@@ -339,6 +339,11 @@ environment variable names and operational procedures. **Keep such a repository 
 and do not publish its wiki.** Nothing here records secret values — variable names at
 most — but the shape of your infrastructure is itself information.
 
+## Privacy
+
+No network calls, no telemetry, nothing leaves your machine. What the plugin reads and
+writes is listed in [PRIVACY.md](PRIVACY.md).
+
 ## License
 
 MIT

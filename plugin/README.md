@@ -15,7 +15,8 @@ This plugin gives Claude Code:
     update them while it still has the change in context
   - **at session start**, pages whose code moved since they were checked
 
-Requires git and Python 3.10+ available as `python3`. No other dependencies, no API key.
+Requires git and Python 3.10+ available as `python3`. No other dependencies, no API key,
+no network calls. Privacy: https://github.com/DragonBall2/llm-project-docs/blob/main/PRIVACY.md
 
 Full documentation, the demo and the design notes:
 https://github.com/DragonBall2/llm-project-docs
