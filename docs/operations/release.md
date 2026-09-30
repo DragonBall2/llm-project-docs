@@ -2,12 +2,12 @@
 title: Releasing a version and getting it into the running plugin
 type: operation
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-09-30
 sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 5727fc9
+verified_at: 4072651
 ---
 
 # Release
@@ -39,6 +39,18 @@ claude plugin update llm-project-docs@llm-project-docs
 
 Before a release, both `claude plugin validate ./plugin --strict` and
 `claude plugin validate . --strict` must pass; the official directory runs the same check.
+CI runs both in a `validate` job on every push.
+
+## The official directory
+
+Submitted 2026-09-30 from a personal claude.ai account, listed on Claude Code only (hooks
+do not run in the apps). Auto-publish is on and a GitHub push webhook tells the directory
+about every push to `main`, so **a push to main is a release within minutes**. Run the
+round trip and the strict validator before pushing, not after.
+
+> ⚠️ The hooks run Python, so the directory's validator cannot follow them and every
+> version is held for a human policy review. Wrapping them in shell scripts would not
+> change that: a file a script runs in turn is not followed either.
 
 Check: `~/.claude/plugins/cache/llm-project-docs/llm-project-docs/<version>/hooks/` holds
 the files you expect. Hooks load at session start, so restart after updating.
