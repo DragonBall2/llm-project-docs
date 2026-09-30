@@ -22,3 +22,16 @@ jobs:
           git config --global user.email t@example.com
           git config --global user.name test
       - run: python tests/test_roundtrip.py
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: claude plugin validate --strict (what the directory checks)
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude plugin validate ./plugin --strict
+          claude plugin validate . --strict
