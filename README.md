@@ -16,6 +16,8 @@ no web UI, edited mostly by the agent and reviewed like any other file in a comm
 
 <sup>One real turn from this repository's history (commits 70f1eb5 and f5ce7ea): the hook text and diff counts are real, the terminal around them is rendered by `tests/render_demo.py`, and one long trap is trimmed.</sup>
 
+Requires Claude Code, git, and Python 3.10+ available as `python3`. Nothing else.
+
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
 /plugin install llm-project-docs@llm-project-docs

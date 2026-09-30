@@ -1,3 +1,8 @@
+---
+description: Set up a docs/ wiki in this repository, or on a repository that has one, re-copy the linter, add a category, or report status
+argument-hint: "[path] [--lang <language>] [--categories a,b,c] [--lint-only]"
+---
+
 # Build a docs/ wiki inside a project
 
 Turn the repository's `docs/` into an LLM-maintained wiki. Arguments: $ARGUMENTS
