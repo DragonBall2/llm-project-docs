@@ -7,7 +7,7 @@ sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 12be403
+verified_at: 5727fc9
 ---
 
 # Release
@@ -36,6 +36,9 @@ claude plugin update llm-project-docs@llm-project-docs
 > ⚠️ `/plugin update` from the UI does not refresh the marketplace clone first. If the
 > clone in `~/.claude/plugins/marketplaces/llm-project-docs` is behind, the update reports
 > "Plugin not found". Refresh the marketplace first, as above.
+
+Before a release, both `claude plugin validate ./plugin --strict` and
+`claude plugin validate . --strict` must pass; the official directory runs the same check.
 
 Check: `~/.claude/plugins/cache/llm-project-docs/llm-project-docs/<version>/hooks/` holds
 the files you expect. Hooks load at session start, so restart after updating.

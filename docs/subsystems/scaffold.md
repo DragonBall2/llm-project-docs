@@ -7,7 +7,7 @@ sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 12be403
+verified_at: 5727fc9
 ---
 
 # scaffold.py
