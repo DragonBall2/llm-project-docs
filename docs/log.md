@@ -66,3 +66,15 @@ gwiroman is 12 process starts on the 9p mount and only moving the repo fixes it.
   and caught. Recorded as a ⚠️ in [[hooks]]
 - Same day: README leads with "the agent that changed the code updates the docs, in the
   same turn"; demo.gif is one real turn drawn as the TUI (`3973bb6`)
+
+## [2026-10-01] directory | live in the official Claude plugin directory
+
+- Submitted 2026-09-30 from claude.ai/directory/manage: Claude Code only (the apps do not
+  run hooks), auto-publish on, GitHub push webhook connected
+- Prep: `claude plugin validate --strict` clean on plugin and marketplace (command
+  frontmatter, marketplace description, homepage/repository/license, plugin README, icon),
+  `PRIVACY.md`, and a CI `validate` job running the same check
+- Held for human review because the hooks run Python; the only finding was "Uses hooks --
+  information only". Approved and published v1.3.6 (`0fdac27`) 2026-10-01
+- From here a push to `main` that passes the checks is a release within minutes; see
+  [[release]]
