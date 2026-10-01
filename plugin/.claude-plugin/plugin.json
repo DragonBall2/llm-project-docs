@@ -15,5 +15,8 @@
     "wiki",
     "hooks",
     "drift"
-  ]
+  ],
+  "documentationUrl": "https://github.com/DragonBall2/llm-project-docs#readme",
+  "supportUrl": "https://github.com/DragonBall2/llm-project-docs/issues",
+  "privacyPolicyUrl": "https://github.com/DragonBall2/llm-project-docs/blob/main/PRIVACY.md"
 }
