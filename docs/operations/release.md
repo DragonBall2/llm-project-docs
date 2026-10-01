@@ -2,12 +2,12 @@
 title: Releasing a version and getting it into the running plugin
 type: operation
 created: 2026-09-24
-updated: 2026-09-30
+updated: 2026-10-01
 sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 4072651
+verified_at: 6db51c3
 ---
 
 # Release
@@ -47,6 +47,12 @@ Submitted 2026-09-30 from a personal claude.ai account, listed on Claude Code on
 do not run in the apps). Auto-publish is on and a GitHub push webhook tells the directory
 about every push to `main`, so **a push to main is a release within minutes**. Run the
 round trip and the strict validator before pushing, not after.
+
+> ⚠️ The listing's links are not edited in the portal; it reads them from `plugin.json`:
+> `homepage`, `repository`, `license`, `documentationUrl`, `supportUrl`,
+> `privacyPolicyUrl`. The portal cannot render `icon.svg` either (it shows the first
+> letter), so a 1024px PNG from `assets/icon-1024.png` was uploaded there by hand and
+> went through its own review.
 
 > ⚠️ The hooks run Python, so the directory's validator cannot follow them and every
 > version is held for a human policy review. Wrapping them in shell scripts would not
