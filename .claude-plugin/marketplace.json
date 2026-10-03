@@ -8,8 +8,8 @@
     {
       "name": "llm-project-docs",
       "source": "./plugin",
-      "description": "Docs that stay true to the code: the agent that changed the code updates the pages in the same turn. A docs/ wiki inside the repo, per-page verified_at so stale pages are computable, and hooks that show a file's recorded traps before it is edited.",
-      "version": "1.4.2",
+      "description": "For git repos in Claude Code: the agent that changes the code updates the docs in the same turn. Run /project-docs-setup once per repo to start.",
+      "version": "1.4.3",
       "author": {
         "name": "DragonBall2"
       }
