@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-03
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 7eb24ea
+verified_at: 8497735
 ---
 
 # Testing
@@ -32,6 +32,7 @@ once-per-session marker files the test creates in the temp dir.
   code, and without a wiki
 - edit hook: shows a page's whole ⚠️ paragraph before its file is edited, once per file
   per session, silent without traps or a wiki
+- scaffold in a folder without git, or with no commit, exits 1 and writes nothing
 - the setup hint: once per git repo with code and no wiki, as a user-facing
   `systemMessage`; never twice, never in a tiny repo, never with the path in its record
 - an outdated linter copy: the session hook says so and names the fix, `--lint-only`

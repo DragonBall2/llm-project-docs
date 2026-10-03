@@ -2,12 +2,12 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-09-25
+updated: 2026-10-03
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 5727fc9
+verified_at: 8497735
 ---
 
 # scaffold.py
@@ -29,7 +29,11 @@ Given `--root`, `--name`, optional `--categories` and `--exclude`:
   (`plugin/scripts/scaffold.py:523`). Missing source is a hard error
 
 Existing files are left alone unless `--force`. `--dry-run` prints the plan.
-`--sha` overrides the baseline (default HEAD). `--lint-only` re-copies the linter into an
+`--sha` overrides the baseline (default HEAD). Without `--sha`, a folder that is not a git
+repository, or has no commit yet, is refused with exit 1 and nothing written: it used to
+write `<sha>` as a placeholder, and the linter then reported every page as a broken
+claim. Step 0 of the procedure stops there too and offers `git init`, doing it only if
+the user says yes. `--lint-only` re-copies the linter into an
 already scaffolded repository and touches nothing else; see [[vendored-linter]].
 `--lang` fills the Language section of the contract; the procedure infers the value
 (argument, existing docs, the user's language) rather than asking. Nothing else is
