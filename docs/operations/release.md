@@ -7,7 +7,7 @@ sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 7eb24ea
+verified_at: 83f1541
 ---
 
 # Release
@@ -40,6 +40,11 @@ claude plugin update llm-project-docs@llm-project-docs
 Before a release, both `claude plugin validate ./plugin --strict` and
 `claude plugin validate . --strict` must pass; the official directory runs the same check.
 CI runs both in a `validate` job on every push.
+
+> ⚠️ That job installs Claude Code from npm, which declares `engines: node >=22`. On
+> Node 20 the validator exits 1 before checking anything, and the job failed silently from
+> `3bbc373` to `d446ff6` while the plugin itself was clean. If the job fails, reproduce it
+> with a fresh clone and an empty `HOME` before suspecting the manifest.
 
 ## The official directory
 
