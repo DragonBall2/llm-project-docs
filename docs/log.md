@@ -78,3 +78,13 @@ gwiroman is 12 process starts on the 9p mount and only moving the repo fixes it.
   information only". Approved and published v1.3.6 (`0fdac27`) 2026-10-01
 - From here a push to `main` that passes the checks is a release within minutes; see
   [[release]]
+
+## [2026-10-03] directory day one | 759 installs, 12 active -> setup hint (1.4.0)
+
+- First day of usage data: 759 installs from 756 accounts, 0 uninstalls, 12 active.
+  Installs came from the claude.ai plugin page (417), Cowork plugin search (209) and the
+  Claude Code desktop browser (132); claude.ai installs sync to Claude Code
+- The gap: installing does nothing until `/project-docs-setup` runs in a repository, and
+  every hook was silent without a wiki, so no one was told the next step
+- 1.4.0 (`7eb24ea`): the session hook shows the user one line, once per git repository
+  with code and no wiki. See [[hooks]] and the exception noted in [[hooks-never-fix]]
