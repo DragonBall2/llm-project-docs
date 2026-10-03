@@ -264,7 +264,8 @@ but a rule in a file is not a mechanism. These are the mechanism.
 
 - **Find contradictions between pages, or duplicated prose.** Those need reading. The
   linter is deliberately limited to what a script can decide
-- **Work without git.** `verified_at` is a commit sha
+- **Work without git.** `verified_at` is a commit sha. Setup stops in a folder with no
+  repository or no commit yet; `git init` and a first commit are all it needs
 - **Keep line-number citations honest.** The linter checks that a cited line is inside the
   file, not that it is still the symbol you meant. Prefer citing symbol names
 - **Compile anything.** There is no pipeline and no API key. `scaffold.py` writes

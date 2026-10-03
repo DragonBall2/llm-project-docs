@@ -498,7 +498,15 @@ def main() -> int:
             sha = subprocess.run(["git", "-C", str(root), "rev-parse", "--short", "HEAD"],
                                  capture_output=True, text=True, check=True).stdout.strip()
         except Exception:
-            sha = "<sha>"
+            # No repository, or no commit yet. Every page records the commit it was
+            # checked against, so there is nothing to record and nothing to compare
+            # with later. Writing a placeholder here made the linter report every
+            # page as a broken claim.
+            print(f"x {root} is not a git repository with at least one commit.\n"
+                  "  verified_at needs a commit to point at. Run `git init`, commit,\n"
+                  "  then scaffold again (or pass --sha to name a baseline yourself).",
+                  file=sys.stderr)
+            return 1
 
     sections = "\n\n".join(
         f"## {slug}\n\n<!-- TODO: pages under {desc or slug}. `- [[page-name]] -- one line` -->"

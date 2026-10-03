@@ -293,6 +293,17 @@ def main() -> int:
 
         assert after_commit(bare) == "", "commit hook must be silent without a wiki"
 
+        # --- no git: scaffold refuses instead of writing a placeholder sha ---
+        nogit = tmp / "nogit"
+        nogit.mkdir()
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=nogit)
+        assert r.returncode == 1 and "git init" in r.stderr, \
+            f"scaffold must refuse a folder without git and say how to fix it:\n{r.stderr}"
+        assert not (nogit / "docs").exists(), "a refused scaffold must not leave files behind"
+        git(nogit, "init", "-q", "-b", "main")
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=nogit)
+        assert r.returncode == 1, "a repository with no commit yet has no baseline either"
+
         # --- setup hint: once, to the user, only in a git repo with code -----
         fresh = tmp / "fresh"
         (fresh / "src").mkdir(parents=True)

@@ -20,6 +20,13 @@ git -C <repo> status --short          # uncommitted / untracked
 ls <repo>/docs/ 2>/dev/null && wc -l <repo>/docs/*.md
 ```
 
+**If the first command fails, stop here.** Either the folder is not a git repository or it
+has no commit yet, and this wiki cannot work there: every page records the commit it was
+checked against, and staleness is computed from the history after it. Do not scaffold.
+Tell the user that, and that `git init` plus a first commit is all it takes; offer to do
+it, but only do it if they say yes -- creating a repository in someone's folder is their
+decision. Once there is a commit, start again from Step 0.
+
 **If `docs/CLAUDE.md` exists, this repository already has the wiki. Do not scaffold and
 do not split anything** -- the pages are already pages, and "split along headings" would
 tear them apart. Rerunning means one of these, and each has its own answer:
