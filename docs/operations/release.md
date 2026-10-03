@@ -43,7 +43,7 @@ CI runs both in a `validate` job on every push.
 
 > ⚠️ That job installs Claude Code from npm, which declares `engines: node >=22`. On
 > Node 20 the validator exits 1 before checking anything, and the job failed silently from
-> `3bbc373` to `d446ff6` while the plugin itself was clean. If the job fails, reproduce it
+> `6db51c3` to `d446ff6` while the plugin itself was clean. If the job fails, reproduce it
 > with a fresh clone and an empty `HOME` before suspecting the manifest.
 
 ## The official directory
