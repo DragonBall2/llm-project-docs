@@ -240,6 +240,11 @@ session; pages without a ⚠️ line say nothing here, the commit hook names the
 
 ### All three stay quiet unless they have something specific to say
 
+With one exception: the first session in a git repository that has code but no wiki shows
+the user a single line saying to run `/project-docs-setup`. Once per repository, never
+again, and shown to you rather than handed to the agent, so nothing is set up unasked.
+
+
 Silent when the docs are clean. Silent in projects without this wiki. Silent for a
 docs-only commit, and silent when no page points at the files you touched. A hook that
 speaks every session is noise, and noise is how a signal stops being believed. None

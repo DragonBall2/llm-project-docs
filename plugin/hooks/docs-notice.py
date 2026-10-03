@@ -24,6 +24,7 @@ Never blocks a session: every failure path exits 0.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -46,12 +47,62 @@ def lint_version(path: Path) -> str:
         return ""
 
 
+SETUP_HINT = ("llm-project-docs: this repository has no docs/ wiki yet, so its hooks stay "
+              "silent here. Run /project-docs-setup to create one. (Shown once per repository.)")
+MIN_TRACKED = 5  # fewer tracked files than this is not a codebase worth a wiki
+
+
+def data_dir() -> Path:
+    # CLAUDE_PLUGIN_DATA is the plugin's persistent directory; it survives updates.
+    d = os.environ.get("CLAUDE_PLUGIN_DATA")
+    return Path(d) if d else Path.home() / ".claude" / "plugins" / "data" / "llm-project-docs-llm-project-docs"
+
+
+def setup_hint(root: Path) -> str:
+    """One line for the *user*, once per repository, where setup was never run.
+
+    Installing the plugin does nothing until /project-docs-setup runs in a repo, and
+    every hook is silent without a wiki -- so on day one 756 accounts installed it and
+    12 used it, never told what the next step was. This is the one exception to
+    "silent unless there is something specific to say", and it is bounded: a git
+    repository with code, no docs/CLAUDE.md, never shown for this repository before.
+    The record is a hash of the path, not the path. If it cannot be recorded, nothing
+    is shown, so the hint can never repeat every session.
+    """
+    if not (root / ".git").exists() or (root / "docs" / "CLAUDE.md").exists():
+        return ""
+    try:
+        tracked = subprocess.run(["git", "-C", str(root), "ls-files"],
+                                 capture_output=True, text=True, timeout=10).stdout.count("\n")
+    except Exception:
+        return ""
+    if tracked < MIN_TRACKED:
+        return ""
+    seen = data_dir() / "setup-hint-shown"
+    key = hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
+    try:
+        shown = seen.read_text(encoding="utf-8").split() if seen.exists() else []
+        if key in shown:
+            return ""
+        seen.parent.mkdir(parents=True, exist_ok=True)
+        with seen.open("a", encoding="utf-8") as f:
+            f.write(key + "\n")
+    except Exception:
+        return ""
+    return SETUP_HINT
+
+
 def main() -> int:
     root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
 
-    # Not a project with this wiki -- say nothing at all.
+    # Not a project with this wiki. Once per repository, tell the user how to start;
+    # otherwise say nothing. systemMessage reaches the user, not the agent: the agent
+    # must not start a setup nobody asked for.
     linter = root / VENDORED
     if not (root / "docs").is_dir() or not linter.is_file():
+        hint = setup_hint(root)
+        if hint:
+            json.dump({"systemMessage": hint}, sys.stdout)
         return 0
 
     # The linter is vendored, so a fix to it reaches this repo only by re-copying.

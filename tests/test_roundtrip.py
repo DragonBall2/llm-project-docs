@@ -14,6 +14,7 @@ silently get wrong:
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
   hook         silent when clean, names drifted pages when not, never blocks;
+               once per git repo with code and no wiki, tells the user to run setup;
                notices an outdated linter copy, and --lint-only re-copies just that
   commit hook  names the pages that describe a commit; silent for docs-only,
                for code no page covers, and for repos without a wiki
@@ -66,9 +67,12 @@ def page(repo: Path, cat: str, name: str, body: str, sha: str, sources: str) -> 
     )
 
 
+DATA = Path(tempfile.mkdtemp(prefix="llm-project-docs-data-"))
+
+
 def hook(repo: Path) -> subprocess.CompletedProcess:
     """Run the SessionStart hook the way Claude Code would."""
-    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo)}
+    env = {**os.environ, "CLAUDE_PROJECT_DIR": str(repo), "CLAUDE_PLUGIN_DATA": str(DATA)}
     return subprocess.run([sys.executable, str(HOOK)], cwd=repo,
                           capture_output=True, text=True, env=env)
 
@@ -288,12 +292,37 @@ def main() -> int:
             f"hook must say nothing where there is no wiki:\n{h.stdout}"
 
         assert after_commit(bare) == "", "commit hook must be silent without a wiki"
+
+        # --- setup hint: once, to the user, only in a git repo with code -----
+        fresh = tmp / "fresh"
+        (fresh / "src").mkdir(parents=True)
+        for i in range(6):
+            (fresh / "src" / f"m{i}.py").write_text("x = 1\n", encoding="utf-8")
+        git(fresh, "init", "-q", "-b", "main")
+        git(fresh, "add", "-A")
+        git(fresh, "commit", "-qm", "init")
+        h = hook(fresh)
+        assert h.returncode == 0 and "/project-docs-setup" in _json_mod.loads(h.stdout)["systemMessage"], \
+            f"a set-up-less repo with code should get the hint, as a user-facing systemMessage:\n{h.stdout}"
+        assert hook(fresh).stdout.strip() == "", "the hint is shown once per repository"
+        assert not any("fresh" in f.read_text() for f in DATA.rglob("*") if f.is_file()), \
+            "the record must not contain the repository path"
+        tiny = tmp / "tiny"
+        tiny.mkdir()
+        (tiny / "a.txt").write_text("a\n", encoding="utf-8")
+        git(tiny, "init", "-q", "-b", "main")
+        git(tiny, "add", "-A")
+        git(tiny, "commit", "-qm", "init")
+        assert hook(tiny).stdout.strip() == "", "a repo with almost no files is not worth the hint"
+        assert hook(repo).stdout.strip() == "" or "systemMessage" not in hook(repo).stdout, \
+            "a repo that has the wiki never gets the setup hint"
         assert before_edit(bare, "x.py", "s") == "", "edit hook must be silent without a wiki"
 
         print("ok - scaffold, clean, json, hooks, edit hook, unverified, stale, broken link")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+        shutil.rmtree(DATA, ignore_errors=True)
         # The edit hook keeps a once-per-session marker in the temp dir; drop ours.
         for m in Path(tempfile.gettempdir()).glob(f"docs-before-edit-t{os.getpid()}*"):
             m.unlink(missing_ok=True)
