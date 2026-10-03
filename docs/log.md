@@ -88,3 +88,18 @@ gwiroman is 12 process starts on the 9p mount and only moving the repo fixes it.
   every hook was silent without a wiki, so no one was told the next step
 - 1.4.0 (`7eb24ea`): the session hook shows the user one line, once per git repository
   with code and no wiki. See [[hooks]] and the exception noted in [[hooks-never-fix]]
+
+## [2026-10-03] usage baseline before the setup hint (CSV, data through 2026-10-01)
+
+All on v1.3.6, before 1.4.0 shipped the setup hint. Kept as the baseline to compare with.
+
+| | claude.ai | Cowork | Claude Code desktop | total |
+|---|---|---|---|---|
+| installs | 418 | 209 | 132 | 759 |
+| active accounts | 5 | 3 | 4 | 12 |
+
+- 3,957 sessions loaded the plugin (4,939 loads), 0 load, install or command errors
+  across Claude Code 2.1.280-2.1.287. 14 invocations in total
+- 894 enables, 23 disables, 0 uninstalls
+- So people were in Claude Code sessions with the plugin loaded; almost none ran setup.
+  The gap is activation, not reach
