@@ -7,7 +7,7 @@ sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 8497735
+verified_at: 49f4351
 ---
 
 # scaffold.py
@@ -56,6 +56,13 @@ The plugin cache path contains a version, so the command file finds the script w
 `find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*'` rather
 than a fixed path. See [[vendored-linter]] for why nothing generated may point back at that
 location.
+
+## Feedback
+
+The procedure's final report ends with the issues URL, verbatim. Directory installs never
+see the GitHub repository (756 installs, 0 issues on day one), and the end of a setup is
+when a complaint is most specific. It is the only place the link appears: once per
+setup, never from a hook.
 
 ## Running setup twice
 
