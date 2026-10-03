@@ -7,7 +7,7 @@ sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 49f4351
+verified_at: a19aa87
 ---
 
 # scaffold.py
@@ -63,6 +63,15 @@ The procedure's final report ends with the issues URL, verbatim. Directory insta
 see the GitHub repository (756 installs, 0 issues on day one), and the end of a setup is
 when a complaint is most specific. It is the only place the link appears: once per
 setup, never from a hook.
+
+## Where setup can run
+
+Installs reach every surface (a claude.ai directory install syncs to Claude Code), but the
+plugin only works where a shell can run in the user's repository: Claude Code, or a Cowork
+session on the user's own computer. In claude.ai chat hooks are ignored and the command
+loads as an auto-applied skill, so a request like "organise this project's docs" could
+start a setup that cannot run. The skill and Step 0 both open by checking for a shell and
+stopping with that explanation if there is none.
 
 ## Running setup twice
 
