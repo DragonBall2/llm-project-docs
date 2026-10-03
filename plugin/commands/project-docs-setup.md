@@ -212,3 +212,11 @@ Use **paths from the repository root**, consistently.
   whole thing as one document
 - Remaining TODOs (the unfilled table in `docs/CLAUDE.md`, reading order in `index.md`)
 - Ask before committing. Do not commit unless asked
+- **End with this line, verbatim, as the last line of the report:**
+
+  ```
+  Something off in this setup? https://github.com/DragonBall2/llm-project-docs/issues
+  ```
+
+  Most people install this from the directory and never see the repository. This line is
+  the only way their problems reach the author. Once per setup, not anywhere else.

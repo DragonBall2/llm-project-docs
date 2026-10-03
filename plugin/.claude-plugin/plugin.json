@@ -2,7 +2,7 @@
   "name": "llm-project-docs",
   "displayName": "LLM Project Docs",
   "description": "Docs that stay true to the code: the agent that changed the code updates the pages in the same turn. A docs/ wiki inside the repo, per-page verified_at so stale pages are computable, and hooks that show a file's recorded traps before it is edited.",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "author": {
     "name": "DragonBall2"
   },
