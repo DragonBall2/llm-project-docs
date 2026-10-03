@@ -5,6 +5,8 @@ description: Turn a repository's docs/ into a wiki an LLM maintains — categori
 
 # project-docs-setup
 
+**First, check you can run a shell command in a local folder.** If you cannot -- claude.ai chat, a cloud session -- stop: this needs Claude Code (or a Cowork session on the user's computer) opened in their git repository, so say that and do nothing else.
+
 Builds `docs/` **inside the repository** as an LLM-maintained wiki. The documentation
 ships in the same commits as the code, and `/docs-sync` updates it by reading only what
 changed.

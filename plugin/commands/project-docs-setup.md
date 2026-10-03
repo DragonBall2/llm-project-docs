@@ -14,6 +14,8 @@ The principles (access-pattern categories, `verified_at`, the code exclude list)
 
 ## Step 0: survey
 
+**First, check you can run a shell command in a local folder.** If you cannot -- claude.ai chat, a cloud session -- stop: this needs Claude Code (or a Cowork session on the user's computer) opened in their git repository, so say that and do nothing else.
+
 ```bash
 git -C <repo> log --oneline -1        # baseline commit
 git -C <repo> status --short          # uncommitted / untracked
