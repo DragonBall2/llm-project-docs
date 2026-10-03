@@ -42,7 +42,9 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
   repo and every hook is silent without a wiki. The hint goes out as `systemMessage` (to
   the user, not the agent, so the agent never starts a setup unasked), only in a git repo
   with at least 5 tracked files and no `docs/CLAUDE.md`, once per repository. The record
-  lives in `CLAUDE_PLUGIN_DATA` as hashed paths; if it cannot be written, nothing is shown
+  lives in `CLAUDE_PLUGIN_DATA` as hashed paths; if it cannot be written, nothing is shown.
+  Seen live 2026-10-03 on v2.1.288: the user sees `SessionStart:startup says: <message>`
+  under the session banner, and the agent did not act on it
 - The commit hook decides for itself whether a Bash call was a commit: the command
   mentions `git ... commit` and HEAD differs from the last one it reported this session
   (marker file keyed by `session_id`, like the edit hook). Both conditions matter: the
