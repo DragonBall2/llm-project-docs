@@ -2,12 +2,12 @@
 title: What lives in the plugin and what gets copied out
 type: architecture
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-03
 sources:
   - code: plugin/.claude-plugin/plugin.json
   - code: .claude-plugin/marketplace.json
   - code: plugin/scripts/scaffold.py
-verified_at: 6db51c3
+verified_at: 7eb24ea
 ---
 
 # Layout

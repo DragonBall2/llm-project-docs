@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-03
 sources:
   - code: plugin/hooks/
-verified_at: 2ec125b
+verified_at: 7eb24ea
 ---
 
 # Decision: hooks point, they do not fix
@@ -27,6 +27,11 @@ already shown this session: nothing. A hook that speaks every session is noise, 
 is how a signal stops being believed. The SessionStart hook speaks only when the linter
 reports stale or problem pages, or when the repository's linter copy is older than the
 plugin's ([[vendored-linter]]).
+
+The one deliberate exception is the setup hint ([[hooks]]): a repository with code and no
+wiki gets a single line, once, ever. Silence there was not noise avoided, it was the next
+step withheld -- 756 installs and 12 users on the first day. Bounded to once per
+repository, it cannot become the every-session noise this rule exists to prevent.
 
 ## 3. Every path exits 0
 

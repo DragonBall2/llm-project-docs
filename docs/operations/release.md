@@ -2,12 +2,12 @@
 title: Releasing a version and getting it into the running plugin
 type: operation
 created: 2026-09-24
-updated: 2026-10-01
+updated: 2026-10-03
 sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 6db51c3
+verified_at: 7eb24ea
 ---
 
 # Release

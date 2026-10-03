@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-03
 sources:
   - code: plugin/hooks/
-verified_at: 2ec125b
+verified_at: 7eb24ea
 ---
 
 # Hooks
@@ -16,7 +16,7 @@ is nothing specific to say.
 
 | Event | Script | Sees | Says |
 |---|---|---|---|
-| SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first; an outdated linter copy |
+| SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first; an outdated linter copy; once per repo without a wiki, the setup hint |
 | PostToolUse on Bash | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
 | PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ paragraphs of pages covering that file |
 
@@ -37,6 +37,12 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The session hook calls the target repo's own `.claude/scripts/docs-lint.py`, not the
   plugin's own copy, with a 30 s timeout (`plugin/hooks/docs-notice.py:47`). A linter
   slower than that means the hook silently says nothing. That happened; see [[lint]]
+- The session hook's one exception to silence is the setup hint. Day one in the directory:
+  756 accounts installed, 12 used it, because installing does nothing until setup runs in a
+  repo and every hook is silent without a wiki. The hint goes out as `systemMessage` (to
+  the user, not the agent, so the agent never starts a setup unasked), only in a git repo
+  with at least 5 tracked files and no `docs/CLAUDE.md`, once per repository. The record
+  lives in `CLAUDE_PLUGIN_DATA` as hashed paths; if it cannot be written, nothing is shown
 - The commit hook decides for itself whether a Bash call was a commit: the command
   mentions `git ... commit` and HEAD differs from the last one it reported this session
   (marker file keyed by `session_id`, like the edit hook). Both conditions matter: the
