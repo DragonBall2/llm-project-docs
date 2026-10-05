@@ -2,12 +2,12 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-05
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: a19aa87
+verified_at: 0c35cea
 ---
 
 # scaffold.py
@@ -56,6 +56,17 @@ The plugin cache path contains a version, so the command file finds the script w
 `find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*'` rather
 than a fixed path. See [[vendored-linter]] for why nothing generated may point back at that
 location.
+
+## Repositories it refuses or warns about
+
+- **`docs/` owned by a documentation site** (`docusaurus.config.*`, `mkdocs.yml`,
+  `docs/conf.py`, `docs/_config.yml`, `.vitepress`): exit 1, nothing written. The hooks
+  only know `docs/`, so a wiki elsewhere is not supported yet; the message points at the
+  issues page to find out whether anyone needs it
+- **`.claude/` gitignored**: the scaffold still writes, then warns that the linter and the
+  `/docs-*` commands will not be committed, and prints `.gitignore` lines that keep them
+  while personal `.claude` files stay ignored. The procedure changes `.gitignore` only
+  with the user's yes. The printed lines are checked with `git check-ignore` in the tests
 
 ## Feedback
 

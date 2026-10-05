@@ -7,7 +7,7 @@ sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 609a6d2
+verified_at: 0c35cea
 ---
 
 # Release
@@ -92,7 +92,7 @@ the public API works without it for checking CI.
 Korean output strings and identical logic, synced by hand. After any change to the linter,
 diff against it and port the change, including the `LINT_VERSION` bump: the hook on that
 repository compares the number, and a fork left behind would be told to re-copy the
-English original. In sync as of 2026-09-24 (equal line count).
+English original. `LINT_VERSION` 2 (1.6.0) was ported with it; the fork stays string-only. In sync as of 2026-10-05 (equal line count, 365).
 
 ## Repository git identity
 

@@ -122,3 +122,23 @@ reproduced three that could be fixed:
 
 Left as designed: commits typed in a terminal (the next session reports them), an agent
 that ignores the notice (hooks point, they never edit), no `/docs-sync` after a pull.
+
+## [2026-10-05] 1.6.0 | four ways real repositories broke it
+
+Reproduced on throwaway repositories before fixing:
+
+- **Squash or rebase merge, shallow clone**: a page verified on a branch pointed at a
+  commit the repository no longer had, so the linter failed it on every run. Now
+  unverified with a hint. `LINT_VERSION` 2, ported to the gwiroman fork (`ccf5fc7` there)
+- **A commit someone else made, reported as the agent's**: 1.5.0's "HEAD under 10 minutes
+  old" fired on a terminal commit followed by an agent `git status`. The commit hook now
+  records HEAD before each Bash call and reports only a commit that call made
+- **`.claude/` gitignored**: the linter and commands were never committed. The scaffold
+  warns and prints `.gitignore` lines that keep them; the procedure asks first
+- **`docs/` owned by a site generator**: setup now stops instead of mixing in
+
+Checked and fine: CRLF checkouts (Python reads universal newlines), git worktrees, the
+hooks' cost (70-85 ms per Bash call on ext4).
+
+Seen while porting: gwiroman has 22 of 33 pages stale. Not this plugin's bug, but the
+plainest evidence yet that pointing at pages is not the same as pages getting updated.

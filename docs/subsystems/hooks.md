@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-05
 sources:
   - code: plugin/hooks/
-verified_at: 609a6d2
+verified_at: 0c35cea
 ---
 
 # Hooks
@@ -17,7 +17,7 @@ is nothing specific to say.
 | Event | Script | Sees | Says |
 |---|---|---|---|
 | SessionStart (`startup\|resume`) | docs-notice.py | everything the other two cannot | stale and problem pages, furthest behind first; an outdated linter copy; once per repo without a wiki, the setup hint |
-| PostToolUse on Bash | docs-after-commit.py | commits **the agent** just made | pages whose sources are in that commit, and what to check |
+| PreToolUse + PostToolUse on Bash | docs-after-commit.py | commits **this Bash call** made | pages whose sources are in that commit, new files no page covers, and what to check |
 | PreToolUse `Edit\|Write\|MultiEdit` | docs-before-edit.py | the file about to change | the ⚠️ paragraphs of pages covering that file |
 
 ## Why three and not one
@@ -45,13 +45,13 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
   lives in `CLAUDE_PLUGIN_DATA` as hashed paths; if it cannot be written, nothing is shown.
   Seen live 2026-10-03 on v2.1.288: the user sees `SessionStart:startup says: <message>`
   under the session banner, and the agent did not act on it
-- The commit hook decides for itself whether a Bash call made a commit: the command runs
-  `git` or `gh`, HEAD's committer time is under 10 minutes old, and HEAD differs from the
-  last one reported this session (marker keyed by `session_id`). Looking for the word
-  "commit" (1.3.4 to 1.4.4) missed `git merge`, `cherry-pick`, `revert`, `gh pr merge`
-  and aliases; committer time catches them all, and a fast-forward `git pull` brings old
-  commits and stays quiet. A merge is diffed against its first parent, so it reports
-  everything it brought in
+- The commit hook runs on both sides of every Bash call. Before, it records HEAD (keyed by
+  `tool_use_id`); after, it speaks only if that call moved HEAD to a commit made during it
+  (committer time not older than the record). Each earlier rule broke on real use: an
+  `if:` pattern missed chained commands, the word "commit" missed merges and
+  cherry-picks, and "HEAD under 10 minutes old" (1.5.0 only) reported a commit typed in
+  a terminal as the agent's own. `git pull` is skipped, since what it brings was written
+  elsewhere. A merge is diffed against its first parent
 - It also names files the commit **added** that no page covers. Without that, the wiki
   could only ever be corrected, never grown: a new subsystem matches no page's sources, so
   nothing mentioned it. Tests, dotfiles, lockfiles and anything under `docs/` or

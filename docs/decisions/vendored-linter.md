@@ -2,11 +2,11 @@
 title: Why the linter is copied into each repo instead of referenced
 type: decision
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-05
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
-verified_at: 609a6d2
+verified_at: 0c35cea
 ---
 
 # Decision: vendor the linter
@@ -35,6 +35,8 @@ release, and a manual install lives somewhere else entirely.
 ## What the copy buys
 
 - A scaffolded repository works without the plugin. Clone it, run `/docs-lint`, done
+  -- as long as `.claude/` is not gitignored. Where it is, the copy never gets committed;
+  the scaffold warns and prints `.gitignore` lines that keep it ([[scaffold]])
 - No version skew between a repo's commands and its linter: they were committed together
 - The hooks, which do run with `CLAUDE_PLUGIN_ROOT`, still call the repo's copy, so the
   repo's behaviour is the same whether or not the plugin is installed

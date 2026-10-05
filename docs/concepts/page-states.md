@@ -2,10 +2,10 @@
 title: Page states: clean, stale, unverified, problem
 type: concept
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-05
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 609a6d2
+verified_at: 0c35cea
 ---
 
 # Page states
@@ -43,10 +43,15 @@ not do that move automatically.
 
 ## problem
 
+A fourth unverified case since `LINT_VERSION` 2: the `verified_at` commit is not in the
+repository. It used to be a problem, below, but its usual cause is a branch that was
+squash- or rebase-merged, or a shallow clone, not a false claim. Failing every such page
+on every run taught people to ignore the linter.
+
 Broken `[[link]]`, orphan page, missing frontmatter key (`plugin/scripts/lint.py:27`),
-`code:` source that does not exist, citation past end of file, and a `verified_at` sha the
-repository does not contain (`plugin/scripts/lint.py:191`). That last one is deliberately a
-problem and not unverified: a sha that is not in the repo is a broken claim, not a weak one.
+`code:` source that does not exist, and a citation past end of file. A `verified_at` sha
+the repository does not contain was on this list until `LINT_VERSION` 2; it is now the
+unverified case above (`plugin/scripts/lint.py:194`).
 
 > ⚠️ `verified_at` is written *before* you commit, so a fresh docs commit shows every page
 > it touched as "stale by 1". That is your own commit, not drift.

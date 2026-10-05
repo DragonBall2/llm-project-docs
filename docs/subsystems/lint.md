@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-09-24
 sources:
   - code: plugin/scripts/lint.py
-verified_at: f23a73c
+verified_at: 0c35cea
 ---
 
 # lint.py
