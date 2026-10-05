@@ -142,3 +142,23 @@ hooks' cost (70-85 ms per Bash call on ext4).
 
 Seen while porting: gwiroman has 22 of 33 pages stale. Not this plugin's bug, but the
 plainest evidence yet that pointing at pages is not the same as pages getting updated.
+
+## [2026-10-06] 1.7.0 | scenario run and end-to-end setups
+
+53 scripted scenarios (`tests/scenarios.py`, now in CI) and five headless
+`/project-docs-setup` runs on small repositories: no docs, a long SPEC.md, an already
+scaffolded repo, no git, an MkDocs site.
+
+- The headline: three full setups wrote 25 pages and **0 `⚠️` lines**, so the pre-edit
+  hook, the plugin's main reason to exist, never spoke. Nothing told the agent to mark
+  traps. The contract, the procedure, the report and the commit advice now do
+- The issues line was missing from all three full setups. The report's required ending
+  now opens the section instead of closing a list
+- A setup told its user to expect "stale by 1" after the docs commit; the contract was
+  the source and it was wrong. Fixed in the contract, the skill and [[page-states]]
+- One setup emptied `SPEC.md` without asking. Originals now stay until the user says yes
+- Plus: no setup hint on doc-site repos, scaffold at the repo root from a subfolder, no
+  traps from code fences, traps capped at 300 characters, paths with spaces, problem
+  names in the session notice (`LINT_VERSION` 3, gwiroman fork `d4961d0`)
+- Worked well: no-git and MkDocs runs stopped in 10-25 s with a clear way forward; the
+  three full setups were lint-clean and found two real bugs in the sample code

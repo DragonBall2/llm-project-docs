@@ -2,12 +2,12 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 0c35cea
+verified_at: 3732bf0
 ---
 
 # scaffold.py
@@ -56,6 +56,21 @@ The plugin cache path contains a version, so the command file finds the script w
 `find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*'` rather
 than a fixed path. See [[vendored-linter]] for why nothing generated may point back at that
 location.
+
+## What the setup must produce
+
+> ⚠️ Pages must carry their traps as `> ⚠️` paragraphs. Three end-to-end setups on
+> 2026-10-05 wrote 25 pages and 0 such lines, because neither the contract nor the
+> procedure said so, and the pre-edit hook was silent for every one of them. The contract
+> now has the rule, the procedure asks for it, and the report counts the traps.
+
+- The report ends with the commit question and then the issues line. Stated as the last
+  item of a list, it was dropped in all three runs; it now opens the report section
+- Original documents are not deleted, emptied or replaced in the setup run. One run had
+  replaced `SPEC.md` with a pointer without asking
+- The scaffold always works at the repository root, even when called from a subfolder:
+  the hooks look nowhere else
+- A scaffolded but never-filled wiki continues from Step 3 instead of being re-scaffolded
 
 ## Repositories it refuses or warns about
 

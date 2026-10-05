@@ -2,10 +2,10 @@
 title: Page states: clean, stale, unverified, problem
 type: concept
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 0c35cea
+verified_at: 3732bf0
 ---
 
 # Page states
@@ -53,5 +53,8 @@ Broken `[[link]]`, orphan page, missing frontmatter key (`plugin/scripts/lint.py
 the repository does not contain was on this list until `LINT_VERSION` 2; it is now the
 unverified case above (`plugin/scripts/lint.py:194`).
 
-> ⚠️ `verified_at` is written *before* you commit, so a fresh docs commit shows every page
-> it touched as "stale by 1". That is your own commit, not drift.
+> ⚠️ `verified_at` is written *before* you commit, so it names the commit before yours.
+> That does **not** make a docs-only commit stale: staleness counts only commits that touch
+> a page's `code:` sources. Earlier versions of the contract said "expect stale by 1", and
+> a test setup repeated that to its user. It is only true when one commit changes both
+> the code and the page that describes it.

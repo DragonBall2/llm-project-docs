@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - code: plugin/hooks/
-verified_at: 0c35cea
+verified_at: 3732bf0
 ---
 
 # Hooks
@@ -37,6 +37,12 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The session hook calls the target repo's own `.claude/scripts/docs-lint.py`, not the
   plugin's own copy, with a 30 s timeout (`plugin/hooks/docs-notice.py:47`). A linter
   slower than that means the hook silently says nothing. That happened; see [[lint]]
+- The edit hook skips `⚠️` inside fenced code blocks (examples, not traps) and cuts each
+  trap at 300 characters; the page holds the rest. One 1,000-character trap made a
+  1,280-character message before
+- The session hook names up to three problems from the linter's `problem_list` instead of
+  only counting them, and gives no setup hint where a doc-site generator owns `docs/`
+  (it reads the scaffold's own marker list, so the hint and the refusal cannot disagree)
 - The session hook's one exception to silence is the setup hint. Day one in the directory:
   756 accounts installed, 12 used it, because installing does nothing until setup runs in a
   repo and every hook is silent without a wiki. The hint goes out as `systemMessage` (to

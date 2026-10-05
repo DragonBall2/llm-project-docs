@@ -2,15 +2,17 @@
 title: One test file, and how to know it would catch a break
 type: operation
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 0c35cea
+  - code: tests/scenarios.py
+verified_at: 3732bf0
 ---
 
 # Testing
 
-`tests/test_roundtrip.py` is the entire suite. No framework, no fixtures, standard library
+`tests/test_roundtrip.py` pins the contract and `tests/scenarios.py` the corner cases;
+CI runs both. No framework, no fixtures, standard library
 only, same as the scripts. Run it with `python3 tests/test_roundtrip.py`; `python` is not
 on PATH in this WSL shell. CI runs it on 3.10 and 3.12.
 
@@ -44,6 +46,15 @@ once-per-session marker files the test creates in the temp dir.
 - the session hook opened in a subfolder still finds the wiki at the repo root
 - an outdated linter copy: the session hook says so and names the fix, `--lint-only`
   restores the plugin's file byte for byte and touches nothing else, then the notice stops
+
+## Scenarios
+
+`tests/scenarios.py` drives the hooks exactly as Claude Code does, on throwaway
+repositories, through 53 cases: aliased, scripted, amended, reverted, cherry-picked,
+rebased and merge commits; a commit someone else made; stash, checkout, pull; Korean
+paths and paths with spaces; ⚠️ in code fences and very long traps; 300-page wikis and
+2,000-commit histories; doc-site repositories. Each row prints latency and message size,
+since the hooks run on every Bash call and every edit. About 15 seconds.
 
 ## Mutation checks
 

@@ -2,10 +2,10 @@
 title: lint.py: two history walks and the traps around them
 type: subsystem
 created: 2026-09-24
-updated: 2026-09-24
+updated: 2026-10-06
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 0c35cea
+verified_at: 3732bf0
 ---
 
 # lint.py
@@ -56,11 +56,18 @@ the count matters more than the work.
 > time this regressed, unverified went from 6 to 0 and **looked like an improvement**.
 > Compare counts against the previous implementation whenever you touch a walk.
 
+## Source paths
+
+`code:` values are read to the end of the line, quotes and a trailing `# comment` dropped,
+so a path with a space works (`LINT_VERSION` 3). The commit hook parses them the same
+way.
+
 ## Output
 
 Human text by default, `--json` for hooks: counts only plus `stale_pages`, so a hook never
 parses prose and a translated copy of the script still emits the same keys. Exit 1 only on
-problems.
+problems. `--json` also carries `problem_list`, the first five problem lines, so the
+session hook can say what is wrong.
 
 ## The Korean fork
 

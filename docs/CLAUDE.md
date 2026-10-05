@@ -74,6 +74,11 @@ Rules:
 - No claim without a source. If there is no evidence, write `(unverified)`
 - Cite code as `path/to/file:line`. **Do not paste code in.**
   Describe what it does and why, and point at where it lives
+- **Write every trap as its own `> ⚠️` paragraph.** A trap is something that bit, or will
+  bite, whoever changes this code: an ordering that matters, a setting that must stay, a
+  fix that looks wrong but is right. Before a file is edited, the plugin's hook shows the
+  `⚠️` paragraphs of the pages that cover it, and nothing else. A trap written as plain
+  prose is never shown at the moment it matters
 - `updated` is the day the body changed. If you only confirmed the sha and the prose
   still holds, move `verified_at` alone
   - Note that `/docs-lint` reports such a page as **unverified**
