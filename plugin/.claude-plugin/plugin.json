@@ -2,7 +2,7 @@
   "name": "llm-project-docs",
   "displayName": "LLM Project Docs",
   "description": "For git repos in Claude Code: the agent that changes the code updates the docs in the same turn. Run /project-docs-setup once per repo to start.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "author": {
     "name": "DragonBall2"
   },

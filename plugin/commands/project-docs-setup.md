@@ -44,6 +44,7 @@ tear them apart. Rerunning means one of these, and each has its own answer:
 |---|---|
 | `--lint-only` in the arguments, or the session hook said the linter copy is old | `python3 "$SCAFFOLD" --root <repo> --lint-only`, then stop |
 | a new category | create the directory, add its section to `docs/index.md`, and its row to the category table in `docs/CLAUDE.md`. Nothing else |
+| the wiki was scaffolded but never filled (no page files, `docs/index.md` still has its TODO comments) | continue from **Step 3** below; the scaffold is done |
 | nothing specific | run `/docs-status` and report it. Ask only if the user's intent is still unclear |
 
 Everything below this line is for a repository that does not have the wiki yet.
@@ -124,6 +125,11 @@ paths in `sources` so the claims stay checkable later.
 
 ### Both paths
 
+- **Every trap goes in as a `> ⚠️` paragraph** -- see the page format in `docs/CLAUDE.md`.
+  Reading the code, you will find things like "this must come before that", "this
+  setting must stay on", "this compare must be constant-time". Those are the lines the
+  pre-edit hook shows; a page with traps in plain prose shows nothing. Aim for every
+  subsystem or decision page to carry its traps this way
 - Convert section references (`§5.1`) to `[[page-name]]`. This is mechanical
 - **Links that point at their own page** become "this page"
 - Re-point links to other documents (`[SPEC.md](SPEC.md)`) at the new pages
@@ -161,8 +167,9 @@ Run it until clean. Read for what the script cannot see — contradictions betwe
 a **duplicated table** across a lookup and an exploratory page, and prose that is wrong
 while `verified_at` is current.
 
-Delete the old files **after** it passes. `git mv` keeps them tracked as renames, so the
-history survives.
+**Do not delete, empty or replace the original documents in this run.** Leave `SPEC.md`
+and friends as they are, list them in the report, and ask whether to remove them. Only on
+the user's yes, `git rm` them in a separate commit; the history keeps them either way.
 
 ---
 
@@ -219,17 +226,24 @@ Use **paths from the repository root**, consistently.
 
 ## Final report
 
+**The report ends with exactly these two things, in this order, and nothing after them:**
+1. the question whether to commit (do not commit unless asked)
+2. this line, verbatim:
+
+   ```
+   Something off in this setup? https://github.com/DragonBall2/llm-project-docs/issues
+   ```
+
+Most people install this from the directory and never see the repository. That line is
+the only way their problems reach the author. Once per setup, not anywhere else.
+
+Before those two, report:
+
 - The created tree and page counts per category
+- **How many `⚠️` traps the pages carry.** Zero means the pre-edit hook will never speak;
+  go back and mark the traps you wrote as prose
 - The `lint.py` result
 - **Measured progressive-disclosure gain** — `index.md` + 3 relevant pages versus the
   whole thing as one document
 - Remaining TODOs (the unfilled table in `docs/CLAUDE.md`, reading order in `index.md`)
-- Ask before committing. Do not commit unless asked
-- **End with this line, verbatim, as the last line of the report:**
-
-  ```
-  Something off in this setup? https://github.com/DragonBall2/llm-project-docs/issues
-  ```
-
-  Most people install this from the directory and never see the repository. This line is
-  the only way their problems reach the author. Once per setup, not anywhere else.
+- The original documents that were split, and the question whether to remove them

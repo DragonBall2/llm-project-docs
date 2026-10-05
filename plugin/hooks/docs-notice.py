@@ -58,6 +58,18 @@ def data_dir() -> Path:
     return Path(d) if d else Path.home() / ".claude" / "plugins" / "data" / "llm-project-docs-llm-project-docs"
 
 
+def doc_site_markers() -> list[str]:
+    """The scaffold's list, so the hint and the refusal never disagree."""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("scaffold", PLUGIN_LINT.with_name("scaffold.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        return list(mod.DOC_SITE_MARKERS)
+    except Exception:
+        return []
+
+
 def setup_hint(root: Path) -> str:
     """One line for the *user*, once per repository, where setup was never run.
 
@@ -71,6 +83,8 @@ def setup_hint(root: Path) -> str:
     """
     if not (root / ".git").exists() or (root / "docs" / "CLAUDE.md").exists():
         return ""
+    if any((root / m).exists() for m in doc_site_markers()):
+        return ""  # setup refuses a docs/ owned by a site generator; do not send them there
     try:
         tracked = subprocess.run(["git", "-C", str(root), "ls-files"],
                                  capture_output=True, text=True, timeout=10).stdout.count("\n")
@@ -157,6 +171,8 @@ def main() -> int:
                    "finding out it was wrong. /docs-sync updates them.")
     if problems:
         out.append(f"docs: {problems} problem(s) -- run /docs-lint.")
+        for line in (counts.get("problem_list") or [])[:3]:  # absent in copies before LINT_VERSION 3
+            out.append(f"  {line}")
     if outdated:
         out.append("docs: this repo's linter copy is older than the plugin's. Re-copy it with:\n"
                    f"  {RECOPY}")

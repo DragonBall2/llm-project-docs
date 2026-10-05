@@ -22,7 +22,7 @@ from pathlib import Path
 # Bumped when this file's behaviour changes. The SessionStart hook compares the copy
 # in a repository against the plugin's and says so when they differ; a translated
 # fork keeps the same number once it has the same logic.
-LINT_VERSION = "2"
+LINT_VERSION = "3"
 
 REQUIRED_FM = ("title", "type", "verified_at")
 META_PAGES = {"index", "log", "CLAUDE", "README"}
@@ -42,6 +42,17 @@ def strip_code(text: str) -> str:
     text = re.sub(r"```.*?```", "", text, flags=re.S)
     text = re.sub(r"`[^`\n]*`", "", text)
     return text
+
+
+def code_sources(fm: str) -> list[str]:
+    """`- code:` paths from a page's frontmatter. The whole rest of the line, so a path
+    with a space survives; quotes and a trailing `# comment` are dropped."""
+    out = []
+    for m in re.finditer(r"^\s*-\s*code:\s*(.+?)\s*$", fm, re.M):
+        v = re.sub(r"\s+#.*$", "", m.group(1)).strip().strip("\"'")
+        if v:
+            out.append(v)
+    return out
 
 
 def frontmatter(text: str) -> str | None:
@@ -166,7 +177,7 @@ def main() -> int:
             if not re.search(rf"^{key}:", fm, re.M):
                 problems.append(f"missing {key}: {name}")
 
-        src_paths = re.findall(r"-\s*code:\s*(\S+)", fm)
+        src_paths = code_sources(fm)
         for sp in src_paths:
             if not (root / sp).exists():
                 problems.append(f"broken source: {name} -> {sp}")
@@ -268,7 +279,7 @@ def main() -> int:
         if not (old and new):
             continue
         fm = frontmatter(p.read_text(encoding="utf-8")) or ""
-        live = [sp for sp in re.findall(r"-\s*code:\s*(\S+)", fm) if (root / sp).exists()]
+        live = [sp for sp in code_sources(fm) if (root / sp).exists()]
         if live:
             bumps.append((name, old, new, live))
     known = commits(root, {old for _, old, _, _ in bumps})
@@ -317,6 +328,8 @@ def main() -> int:
         print(_json.dumps({
             "pages": len(pages),
             "problems": len(problems),
+            # The first few, so the session hook can say what is wrong, not just how much.
+            "problem_list": problems[:5],
             "stale": len(stale),
             # Page-level detail so a hook never has to parse the prose above.
             "stale_pages": [{"page": n, "commits": c} for n, c in stale],

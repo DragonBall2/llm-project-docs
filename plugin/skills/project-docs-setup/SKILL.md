@@ -61,9 +61,11 @@ changed** since that sha. There is no separate state file — state in two place
 reading the code. `/docs-lint` surfaces the weakest case (sha moved past N code commits
 with the body untouched) as **unverified**, but the discipline is still on you.
 
-> ⚠️ You write `verified_at` *before* committing, so you cannot know your own sha yet.
-> Write the parent's and the page is stale by exactly your own commit the moment it
-> lands. "Stale by 1" right after a docs commit usually means this, not drift.
+> ⚠️ You write `verified_at` *before* committing, so it names the commit before yours.
+> A docs-only commit does not make anything stale: staleness counts only commits that
+> touch a page's `code:` sources. A page is "stale by 1" right after a commit only when
+> that same commit also changed the code it describes. Do not tell the user to expect
+> stale pages after the setup commit.
 
 ### 3. Code paths are defined by an exclude list
 

@@ -52,7 +52,7 @@ import time
 from pathlib import Path
 
 PULL_RE = re.compile(r"\bgit\b[^|;&\n]*\bpull\b")
-SLACK = 5  # seconds of clock slack between recording HEAD and the commit being made
+# A commit this call made has a committer time no earlier than the record (whole seconds).
 NOT_NEWS = re.compile(r"(^|/)(docs|\.claude|tests?|__tests__|spec)/|(^|/)\.|(^|/)CLAUDE\.md$"
                       r"|(^|/)test_[^/]*$|[._]test\.|\.spec\.|\.lock$|-lock\.(json|yaml)$")
 
@@ -62,6 +62,17 @@ def git(root: Path, *args: str) -> str:
                               capture_output=True, text=True, timeout=20).stdout.strip()
     except Exception:
         return ""
+
+
+def code_sources(fm: str) -> list[str]:
+    """`- code:` paths from a page's frontmatter. The whole rest of the line, so a path
+    with a space survives; quotes and a trailing `# comment` are dropped."""
+    out = []
+    for m in re.finditer(r"^\s*-\s*code:\s*(.+?)\s*$", fm, re.M):
+        v = re.sub(r"\s+#.*$", "", m.group(1)).strip().strip("\"'")
+        if v:
+            out.append(v)
+    return out
 
 
 def pages_for(root: Path, changed: list[str]) -> list[tuple[str, list[str]]]:
@@ -75,7 +86,7 @@ def pages_for(root: Path, changed: list[str]) -> list[tuple[str, list[str]]]:
         m = re.match(r"^---\n(.*?)\n---", head, re.S)
         if not m:
             continue
-        srcs = re.findall(r"-\s*code:\s*(\S+)", m.group(1))
+        srcs = code_sources(m.group(1))
         hit = sorted({c for c in changed for s in srcs if c == s or c.startswith(s.rstrip("/") + "/")})
         if hit:
             out.append((p.stem, hit))
@@ -127,7 +138,7 @@ def main() -> int:
     if PULL_RE.search((payload.get("tool_input") or {}).get("command") or ""):
         return 0
     ct = git(root, "log", "-1", "--format=%ct", "HEAD")
-    if not ct.isdigit() or int(ct) < int(started) - SLACK:
+    if not ct.isdigit() or int(ct) < int(started):
         return 0  # HEAD moved to an existing commit: checkout, reset, fast-forward
     sha = git(root, "rev-parse", "--short", "HEAD")
 
@@ -155,7 +166,8 @@ def main() -> int:
               "  - prose still correct -> move `verified_at` to " + sha + "\n"
               "  - prose now wrong     -> fix the body, then move `updated` and `verified_at`\n"
               "  - a trap you hit while making this change and the page does not mention it "
-              "-> that is the most valuable thing you can add\n"
+              "-> add it as a `> ⚠️` paragraph; the pre-edit hook shows those, and it is "
+              "the most valuable thing you can add\n"
               "Do not move `verified_at` without actually checking; /docs-lint reports a "
               "sha that moved with an untouched body as `unverified`.")
     if new:

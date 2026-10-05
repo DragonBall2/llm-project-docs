@@ -76,7 +76,8 @@ worth keeping are the ones you **cannot get by reading it**:
 > silently misses them — and you conclude a commit did not touch the docs when it did.
 
 None of that is in the source. It is what someone learned at 3am, and it is exactly what
-the next person needs. Documentation that mirrors the code competes with the code and
+the next person needs. Pages write each such trap as a `> ⚠️` paragraph, because that is
+what the pre-edit hook shows; a trap in plain prose never reaches the edit. Documentation that mirrors the code competes with the code and
 loses; documentation that records what the code cannot say is worth maintaining.
 
 So `sources` holds live paths, citations point at `file:line` rather than pasting
@@ -331,7 +332,8 @@ python3 /path/to/repo/.claude/scripts/docs-lint.py --root /path/to/repo
 ## Tests
 
 ```bash
-python3 tests/test_roundtrip.py
+python3 tests/test_roundtrip.py   # the contract
+python3 tests/scenarios.py        # 50+ corner cases, with latency and message size
 ```
 
 Scaffolds a throwaway git repository and, from the path the generated command prints,

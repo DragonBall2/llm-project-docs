@@ -46,10 +46,10 @@ For each page, **read the actual diff, not the commit message**
 - Prose wrong -> fix the body, and move both `updated` and `verified_at`
 - A cited `file:line` that shifted -> new line number
 
-> ⚠️ `verified_at` is written *before* you commit, so you cannot know your own sha yet.
-> If you write the parent sha, the page is stale by exactly your own commit the moment
-> it lands. Expect "stale by 1" right after a docs commit and read it as such -- check
-> the body against the code, then move the sha forward.
+> ⚠️ `verified_at` is written *before* you commit, so it names the commit before yours.
+> A docs-only commit does not make anything stale: staleness counts only commits that
+> touch a page's `code:` sources. If one commit changes both code and the page that
+> describes it, that page shows "stale by 1" -- commit code and docs separately.
 
 ### 5. Unclassified changes
 

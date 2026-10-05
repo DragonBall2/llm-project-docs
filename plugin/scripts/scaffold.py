@@ -155,6 +155,11 @@ Rules:
 - No claim without a source. If there is no evidence, write `(unverified)`
 - Cite code as `path/to/file:line`. **Do not paste code in.**
   Describe what it does and why, and point at where it lives
+- **Write every trap as its own `> ⚠️` paragraph.** A trap is something that bit, or will
+  bite, whoever changes this code: an ordering that matters, a setting that must stay, a
+  fix that looks wrong but is right. Before a file is edited, the plugin's hook shows the
+  `⚠️` paragraphs of the pages that cover it, and nothing else. A trap written as plain
+  prose is never shown at the moment it matters
 - `updated` is the day the body changed. If you only confirmed the sha and the prose
   still holds, move `verified_at` alone
   - Note that `/docs-lint` reports such a page as **unverified**
@@ -263,10 +268,10 @@ For each page, **read the actual diff, not the commit message**
 - Prose wrong -> fix the body, and move both `updated` and `verified_at`
 - A cited `file:line` that shifted -> new line number
 
-> ⚠️ `verified_at` is written *before* you commit, so you cannot know your own sha yet.
-> If you write the parent sha, the page is stale by exactly your own commit the moment
-> it lands. Expect "stale by 1" right after a docs commit and read it as such -- check
-> the body against the code, then move the sha forward.
+> ⚠️ `verified_at` is written *before* you commit, so it names the commit before yours.
+> A docs-only commit does not make anything stale: staleness counts only commits that
+> touch a page's `code:` sources. If one commit changes both code and the page that
+> describes it, that page shows "stale by 1" -- commit code and docs separately.
 
 ### 5. Unclassified changes
 
@@ -498,6 +503,14 @@ def main() -> int:
     if not root.is_dir():
         print(f"x path not found: {root}", file=sys.stderr)
         return 1
+    import subprocess
+    top = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                         capture_output=True, text=True).stdout.strip()
+    if top and Path(top).resolve() != root:
+        # The hooks look for docs/ at the repository root only; a wiki scaffolded into a
+        # subfolder would never be seen by them.
+        print(f"  (using the repository root {top}, not {root})")
+        root = Path(top).resolve()
     name = args.name or root.name
     docs = root / args.docs_dir
     excludes = [e.strip() for e in args.exclude.split(",") if e.strip()]

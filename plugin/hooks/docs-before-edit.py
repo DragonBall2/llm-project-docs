@@ -30,6 +30,7 @@ from pathlib import Path
 
 MARK = ("⚠️", "⚠")
 MAX_PAGES, MAX_LINES = 3, 6
+MAX_CHARS = 300  # per trap; the page holds the rest
 
 
 def _pages_for(root: Path, changed: list[str]):
@@ -54,21 +55,30 @@ def traps(root: Path, page: str) -> list[str]:
     out = []
     for p in (root / "docs").rglob(f"{page}.md"):
         lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+        # A ⚠️ inside a fenced code block is an example, not a trap.
+        fenced, in_fence = set(), False
+        for n, l in enumerate(lines):
+            if l.lstrip().startswith(("```", "~~~")):
+                in_fence = not in_fence
+                fenced.add(n)
+            elif in_fence:
+                fenced.add(n)
         i = 0
         while i < len(lines):
-            if any(m in lines[i] for m in MARK):
+            if i not in fenced and any(m in lines[i] for m in MARK):
                 quoted = lines[i].lstrip().startswith(">")
                 para = [_clean(lines[i])]
                 i += 1
                 while i < len(lines):
                     raw = lines[i]
-                    if not raw.strip() or raw.lstrip().startswith(("#", "- ", "* ")) \
+                    if i in fenced or not raw.strip() or raw.lstrip().startswith(("#", "- ", "* ")) \
                             or quoted != raw.lstrip().startswith(">") \
                             or any(m in raw for m in MARK):
                         break
                     para.append(_clean(raw))
                     i += 1
-                out.append(" ".join(para))
+                t = " ".join(para)
+                out.append(t if len(t) <= MAX_CHARS else t[:MAX_CHARS].rsplit(" ", 1)[0] + " …")
             else:
                 i += 1
     return out[:MAX_LINES]
