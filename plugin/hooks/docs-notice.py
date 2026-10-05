@@ -92,8 +92,23 @@ def setup_hint(root: Path) -> str:
     return SETUP_HINT
 
 
+def repo_root(start: Path) -> Path:
+    """The repository root, so a session opened in a subfolder still finds docs/.
+
+    Without this, opening Claude Code in `server/` of a repo whose wiki lives at the
+    root made this hook silent, while the commit and edit hooks (which already
+    resolved the root) kept working. Falls back to the folder itself outside git.
+    """
+    try:
+        top = subprocess.run(["git", "-C", str(start), "rev-parse", "--show-toplevel"],
+                             capture_output=True, text=True, timeout=10).stdout.strip()
+        return Path(top) if top else start
+    except Exception:
+        return start
+
+
 def main() -> int:
-    root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
+    root = repo_root(Path(os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve())
 
     # Not a project with this wiki. Once per repository, tell the user how to start;
     # otherwise say nothing. systemMessage reaches the user, not the agent: the agent

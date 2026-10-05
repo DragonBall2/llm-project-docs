@@ -16,8 +16,10 @@ silently get wrong:
   hook         silent when clean, names drifted pages when not, never blocks;
                once per git repo with code and no wiki, tells the user to run setup;
                notices an outdated linter copy, and --lint-only re-copies just that
-  commit hook  names the pages that describe a commit; silent for docs-only,
-               for code no page covers, and for repos without a wiki
+  commit hook  names the pages that describe a commit, including merges and other
+               commits made without the word "commit"; names new files no page
+               covers; silent for docs-only, for an old HEAD, for edits to uncovered
+               files, and for repos without a wiki
   edit hook    shows a page's ⚠️ lines before the file it covers is edited;
                once per file per session; silent without traps or a wiki
 
@@ -191,6 +193,9 @@ def main() -> int:
             f"session hook should name the drifted pages, not just count them:\n{h.stdout}"
         assert "commits behind" in h.stdout, f"and say how far behind:\n{h.stdout}"
         assert "/docs-sync" in h.stdout, "hook should name the command to run"
+        h = hook(repo / "src")
+        assert "[[overview]]" in h.stdout, \
+            f"a session opened in a subfolder must still find the wiki at the repo root:\n{h.stdout}"
 
         # --- post-commit hook: names the pages that cover what just changed --
         ctx = after_commit(repo)
@@ -200,10 +205,8 @@ def main() -> int:
         assert "verified_at" in ctx, "commit hook should say what to do"
         assert after_commit(repo) == "", "same HEAD again in this session -> silent"
         assert after_commit(repo, session="t2") != "", "a new session reports it once more"
-        assert after_commit(repo, "git status && ls", session="t3") == "", \
-            "a command that is not a commit must be silent even with a new HEAD"
-        assert after_commit(repo, "cat <<EOF\nsee git commit docs\nEOF", session="t4") != "", \
-            "the words alone do pass the regex; HEAD dedup is what stops repeats"
+        assert after_commit(repo, "ls && echo hi", session="t3") == "", \
+            "a command that does not run git or gh must be silent even with a new HEAD"
 
         # docs-only commit is not drift -> silent
         (repo / "docs" / "concepts" / "glossary.md").write_text(
@@ -213,12 +216,40 @@ def main() -> int:
         git(repo, "commit", "-qm", "docs: tweak")
         assert after_commit(repo) == "", "docs-only commit must be silent"
 
-        # code no page points at -> silent
+        # a new file no page covers -> named, so the wiki can grow
         (repo / "tools").mkdir()
         (repo / "tools" / "z.py").write_text("x = 1\n", encoding="utf-8")
+        (repo / "tests").mkdir()
+        (repo / "tests" / "test_z.py").write_text("x = 1\n", encoding="utf-8")
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "chore: tool")
-        assert after_commit(repo) == "", "uncovered code must be silent"
+        ctx = after_commit(repo)
+        assert "tools/z.py" in ctx and "no page describes" in ctx, \
+            f"a new file no page covers should be named:\n{ctx}"
+        assert "test_z.py" not in ctx, f"tests are not news:\n{ctx}"
+        # ...but changing an existing uncovered file is still silent
+        (repo / "tools" / "z.py").write_text("x = 2\n", encoding="utf-8")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "chore: tool again")
+        assert after_commit(repo) == "", "an edit to an existing uncovered file must be silent"
+
+        # commits made without the word "commit": a merge brings src/app.py
+        git(repo, "checkout", "-qb", "feature")
+        (repo / "src" / "app.py").write_text("def hello():\n    return 3\n", encoding="utf-8")
+        git(repo, "commit", "-qam", "feat: three")
+        git(repo, "checkout", "-q", "main")
+        git(repo, "merge", "-q", "--no-ff", "-m", "merge feature", "feature")
+        ctx = after_commit(repo, "git merge --no-ff feature", session="t5")
+        assert "[[overview]]" in ctx and "src/app.py" in ctx, \
+            f"a merge commit must report what it brought in:\n{ctx}"
+        # an old HEAD is not something this call made: a fast-forward pull, a `git log`
+        (repo / "src" / "app.py").write_text("def hello():\n    return 4\n", encoding="utf-8")
+        old = {**os.environ, "GIT_COMMITTER_DATE": "2020-01-01T00:00:00", "GIT_AUTHOR_DATE": "2020-01-01T00:00:00"}
+        r = subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "old"],
+                           cwd=repo, env=old, capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        assert after_commit(repo, "git pull --ff-only", session="t6") == "", \
+            "a HEAD committed long ago was not made by this call"
 
         # --- unverified: sha moved with no body change (silent bump) ---------
         head = run("git", "rev-parse", "--short", "HEAD", cwd=repo).stdout.strip()
@@ -229,7 +260,7 @@ def main() -> int:
         git(repo, "commit", "-qm", "docs: bump overview")
         r = lint(repo)
         assert r.returncode == 0, "a silent bump is reported, never failed"
-        assert "overview -- sha moved past 1 code commits" in r.stdout, \
+        assert re.search(r"overview -- sha moved past \d+ code commits", r.stdout), \
             f"verified_at moved past the feat commit with no body change:\n{r.stdout}"
         assert "1 stale" in r.stdout, f"only glossary should still be stale:\n{r.stdout}"
 

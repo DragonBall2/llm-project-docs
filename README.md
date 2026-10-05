@@ -246,7 +246,9 @@ again, and shown to you rather than handed to the agent, so nothing is set up un
 
 
 Silent when the docs are clean. Silent in projects without this wiki. Silent for a
-docs-only commit, and silent when no page points at the files you touched. A hook that
+docs-only commit, and silent when no page points at the files you touched, unless the
+commit added new files that no page covers: those are named once, so a new subsystem
+does not stay invisible to the wiki. A hook that
 speaks every session is noise, and noise is how a signal stops being believed. None
 can fail a commit, block an edit or a session: every path exits 0.
 
