@@ -103,3 +103,22 @@ All on v1.3.6, before 1.4.0 shipped the setup hint. Kept as the baseline to comp
 - 894 enables, 23 disables, 0 uninstalls
 - So people were in Claude Code sessions with the plugin loaded; almost none ran setup.
   The gap is activation, not reach
+
+## [2026-10-05] 1.5.0 | three ways the docs could silently fail to follow the code
+
+Asked "can the docs fail to update in a repo that has the plugin, a wiki and git?" and
+reproduced three that could be fixed:
+
+- A session opened in a subfolder: the session hook used that folder as the root and
+  said nothing. It now resolves the root with git, like the other two hooks
+- Commits made without the word "commit" (`git merge`, `cherry-pick`, `revert`,
+  `gh pr merge`, aliases) passed the commit hook by. It now asks whether HEAD was
+  committed in the last 10 minutes; merges are diffed against the first parent
+- New code no page covers: the wiki could be corrected but never grow. The commit hook
+  now names files a commit added that no page covers
+- And one that was mine: `vendored-linter` and `page-states` were stale because the pages
+  stamped after `49f4351`, `a19aa87` and `f23a73c` were a hand-picked list. Both were
+  read and stamped; the trap is in [[release]]
+
+Left as designed: commits typed in a terminal (the next session reports them), an agent
+that ignores the notice (hooks point, they never edit), no `/docs-sync` after a pull.

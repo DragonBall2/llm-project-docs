@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-05
 sources:
   - code: plugin/hooks/
-verified_at: 7eb24ea
+verified_at: 609a6d2
 ---
 
 # Decision: hooks point, they do not fix
@@ -32,6 +32,10 @@ The one deliberate exception is the setup hint ([[hooks]]): a repository with co
 wiki gets a single line, once, ever. Silence there was not noise avoided, it was the next
 step withheld -- 756 installs and 12 users on the first day. Bounded to once per
 repository, it cannot become the every-session noise this rule exists to prevent.
+
+The commit hook's mention of new files no page covers (1.5.0) is the same kind of
+exception: once per commit, only for files the commit added, and only when nothing
+covers them. Silence there meant the wiki could be corrected but never grow.
 
 ## 3. Every path exits 0
 

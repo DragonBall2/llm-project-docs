@@ -2,10 +2,10 @@
 title: One test file, and how to know it would catch a break
 type: operation
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-05
 sources:
   - code: tests/test_roundtrip.py
-verified_at: 8497735
+verified_at: 609a6d2
 ---
 
 # Testing
@@ -28,13 +28,16 @@ once-per-session marker files the test creates in the temp dir.
 - a `verified_at` moved with no body change is reported as unverified, never failed
 - `--json` emits counts only
 - SessionStart hook: silent when clean, names drifted pages when not, exit 0 always
-- commit hook: names the pages covering the commit; silent for docs-only, for uncovered
+- commit hook: names the pages covering the commit, merges included, and new files no
+  page covers; silent for an old HEAD (a fast-forward pull) and for commands that do not
+  run git; silent for docs-only, for uncovered
   code, and without a wiki
 - edit hook: shows a page's whole ⚠️ paragraph before its file is edited, once per file
   per session, silent without traps or a wiki
 - scaffold in a folder without git, or with no commit, exits 1 and writes nothing
 - the setup hint: once per git repo with code and no wiki, as a user-facing
   `systemMessage`; never twice, never in a tiny repo, never with the path in its record
+- the session hook opened in a subfolder still finds the wiki at the repo root
 - an outdated linter copy: the session hook says so and names the fix, `--lint-only`
   restores the plugin's file byte for byte and touches nothing else, then the notice stops
 

@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-05
 sources:
   - code: plugin/hooks/
-verified_at: 7eb24ea
+verified_at: 609a6d2
 ---
 
 # Hooks
@@ -45,11 +45,20 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
   lives in `CLAUDE_PLUGIN_DATA` as hashed paths; if it cannot be written, nothing is shown.
   Seen live 2026-10-03 on v2.1.288: the user sees `SessionStart:startup says: <message>`
   under the session banner, and the agent did not act on it
-- The commit hook decides for itself whether a Bash call was a commit: the command
-  mentions `git ... commit` and HEAD differs from the last one it reported this session
-  (marker file keyed by `session_id`, like the edit hook). Both conditions matter: the
-  regex alone re-reports the last commit whenever a heredoc contains those words, and
-  HEAD alone would fire on a `git pull`
+- The commit hook decides for itself whether a Bash call made a commit: the command runs
+  `git` or `gh`, HEAD's committer time is under 10 minutes old, and HEAD differs from the
+  last one reported this session (marker keyed by `session_id`). Looking for the word
+  "commit" (1.3.4 to 1.4.4) missed `git merge`, `cherry-pick`, `revert`, `gh pr merge`
+  and aliases; committer time catches them all, and a fast-forward `git pull` brings old
+  commits and stays quiet. A merge is diffed against its first parent, so it reports
+  everything it brought in
+- It also names files the commit **added** that no page covers. Without that, the wiki
+  could only ever be corrected, never grown: a new subsystem matches no page's sources, so
+  nothing mentioned it. Tests, dotfiles, lockfiles and anything under `docs/` or
+  `.claude/` are left out, and an edit to an existing uncovered file stays silent
+- The session hook resolves the repository root with git, like the other two. Before
+  1.5.0 it used the folder the session was opened in, so a session opened in a subfolder
+  of a repo with a wiki at the root was silent
 - The commit hook owns `pages_for()` (`plugin/hooks/docs-after-commit.py:40`),
   the prefix match from changed paths to `sources[].code`. the edit hook imports
   it from the sibling file rather than copying it

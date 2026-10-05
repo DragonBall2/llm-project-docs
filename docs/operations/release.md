@@ -2,12 +2,12 @@
 title: Releasing a version and getting it into the running plugin
 type: operation
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-05
 sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: a19aa87
+verified_at: 609a6d2
 ---
 
 # Release
@@ -53,7 +53,7 @@ do not run in the apps). Auto-publish is on and a GitHub push webhook tells the 
 about every push to `main`, so **a push to main is a release within minutes**. Run the
 round trip and the strict validator before pushing, not after.
 
-> ⚠️ The listing's links are not edited in the portal; it reads them from `plugin.json`:
+> ⚠️ The listing's links are not edited in the portal; it reads them from `plugin/.claude-plugin/plugin.json`:
 > `homepage`, `repository`, `license`, `documentationUrl`, `supportUrl`,
 > `privacyPolicyUrl`. The portal cannot render `icon.svg` either (it shows the first
 > letter), so a 1024px PNG from `assets/icon-1024.png` was uploaded there by hand and
@@ -78,6 +78,13 @@ not depend on the plugin ([[layout]]).
 The GitHub token needs the `workflow` scope to push `.github/workflows/`. It was added
 with `gh auth refresh -h github.com -s workflow`. `gh` is not on PATH in every shell here;
 the public API works without it for checking CI.
+
+## After a commit, process the hook's list, not your own
+
+> ⚠️ When the commit hook names pages, move `verified_at` on exactly those pages after
+> reading them. Picking the list by hand is how `vendored-linter` and `page-states` went
+> stale here: `49f4351`, `a19aa87` and `f23a73c` changed their sources, and the pages
+> stamped afterwards were a hand-made list that left them out.
 
 ## The gwiroman fork
 
