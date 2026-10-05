@@ -2,12 +2,12 @@
 title: What lives in the plugin and what gets copied out
 type: architecture
 created: 2026-09-24
-updated: 2026-10-03
+updated: 2026-10-06
 sources:
   - code: plugin/.claude-plugin/plugin.json
   - code: .claude-plugin/marketplace.json
   - code: plugin/scripts/scaffold.py
-verified_at: 3732bf0
+verified_at: 8eab999
 ---
 
 # Layout
@@ -29,8 +29,8 @@ need one uninstall and reinstall (see [[release]]).
 **Stays in the plugin** and runs from the plugin cache:
 
 - `plugin/hooks/` -- three hooks, see [[hooks]]
-- `plugin/skills/project-docs-setup/SKILL.md` and `plugin/commands/project-docs-setup.md`
-  -- the setup procedure, see [[scaffold]]
+- `plugin/skills/project-docs-setup/SKILL.md` -- the setup procedure and its principles,
+  one file since 1.8.0, see [[scaffold]]
 - `plugin/scripts/scaffold.py` -- boilerplate writer
 
 **Copied into every target repository** by the scaffold and committed there:

@@ -6,7 +6,7 @@ updated: 2026-10-06
 sources:
   - code: tests/test_roundtrip.py
   - code: tests/scenarios.py
-verified_at: 3732bf0
+verified_at: 8eab999
 ---
 
 # Testing
@@ -50,9 +50,9 @@ once-per-session marker files the test creates in the temp dir.
 ## Scenarios
 
 `tests/scenarios.py` drives the hooks exactly as Claude Code does, on throwaway
-repositories, through 53 cases: aliased, scripted, amended, reverted, cherry-picked,
+repositories, through 54 cases: aliased, scripted, amended, reverted, cherry-picked,
 rebased and merge commits; a commit someone else made; stash, checkout, pull; Korean
-paths and paths with spaces; ⚠️ in code fences and very long traps; 300-page wikis and
+paths and paths with spaces; ⚠️ in code fences, mid-sentence and in very long traps; 300-page wikis and
 2,000-commit histories; doc-site repositories. Each row prints latency and message size,
 since the hooks run on every Bash call and every edit. About 15 seconds.
 

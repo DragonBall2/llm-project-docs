@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-05
 sources:
   - code: plugin/hooks/
-verified_at: 3732bf0
+verified_at: 8eab999
 ---
 
 # Decision: hooks point, they do not fix

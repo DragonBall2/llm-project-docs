@@ -162,3 +162,13 @@ scaffolded repo, no git, an MkDocs site.
   names in the session notice (`LINT_VERSION` 3, gwiroman fork `d4961d0`)
 - Worked well: no-git and MkDocs runs stopped in 10-25 s with a clear way forward; the
   three full setups were lint-clean and found two real bugs in the sample code
+
+## [2026-10-06] 1.8.0 | the setup procedure was never read
+
+The 1.7.0 rerun still had no issues line in any of three setups, and one still emptied
+`SPEC.md`, although the procedure now said otherwise in bold. The procedure was not being
+read: `/project-docs-setup` loads the skill, and the procedure lived in a command file of
+the same name that the skill never mentioned. Every procedure change since 1.3.2 had
+reached no agent. Merged into `SKILL.md`, command file deleted, required ending stated
+before the steps. Checked with `--plugin-dir` **before** pushing: both setups ended with
+the issues line, kept `SPEC.md` and asked, and wrote 15 and 6 `⚠️` traps. See [[scaffold]].

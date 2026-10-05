@@ -2,11 +2,11 @@
 title: Why the linter is copied into each repo instead of referenced
 type: decision
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-06
 sources:
   - code: plugin/scripts/scaffold.py
-  - code: plugin/commands/project-docs-setup.md
-verified_at: 3732bf0
+  - code: plugin/skills/project-docs-setup/SKILL.md
+verified_at: 8eab999
 ---
 
 # Decision: vendor the linter

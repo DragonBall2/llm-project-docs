@@ -5,15 +5,14 @@ created: 2026-09-24
 updated: 2026-10-06
 sources:
   - code: plugin/scripts/scaffold.py
-  - code: plugin/commands/project-docs-setup.md
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 3732bf0
+verified_at: 8eab999
 ---
 
 # scaffold.py
 
 `plugin/scripts/scaffold.py` writes boilerplate only. Designing categories and writing
-pages is the agent's job, driven by `plugin/commands/project-docs-setup.md` (the procedure
+pages is the agent's job, driven by `plugin/skills/project-docs-setup/SKILL.md` (the procedure
 and the traps that actually happened) and `plugin/skills/project-docs-setup/SKILL.md`
 (the principles).
 
@@ -56,6 +55,17 @@ The plugin cache path contains a version, so the command file finds the script w
 `find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*'` rather
 than a fixed path. See [[vendored-linter]] for why nothing generated may point back at that
 location.
+
+## One file, not two
+
+> ⚠️ The plugin shipped a skill and a command with the same name, `project-docs-setup`.
+> `/project-docs-setup` loads the **skill**; the 240-line procedure lived in the command
+> file, which the skill never pointed to. From 1.3.2 to 1.7.0 every procedure change --
+> the no-git and doc-site stops, the rerun branch, keeping originals, the issues line --
+> reached no one through the agent; only what the scaffold script itself enforces took
+> effect. Found when the issues line was missing from six end-to-end setups in a row.
+> Since 1.8.0 the procedure is in `SKILL.md` and the command file is gone. Never ship two
+> components under one name.
 
 ## What the setup must produce
 
@@ -103,7 +113,7 @@ stopping with that explanation if there is none.
 
 The script skips every file that exists, so a rerun cannot damage a wiki. The procedure is
 the risk: without a branch for "already a wiki" it would treat the pages as flat documents
-to split. Step 0 of `plugin/commands/project-docs-setup.md` now stops on an existing
+to split. Step 0 of the setup skill now stops on an existing
 `docs/CLAUDE.md` and routes to `--lint-only`, a new category, or `/docs-status`.
 
 ## Setup is not automatic

@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-06
 sources:
   - code: plugin/hooks/
-verified_at: 3732bf0
+verified_at: 8eab999
 ---
 
 # Hooks
@@ -37,6 +37,9 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The session hook calls the target repo's own `.claude/scripts/docs-lint.py`, not the
   plugin's own copy, with a 30 s timeout (`plugin/hooks/docs-notice.py:47`). A linter
   slower than that means the hook silently says nothing. That happened; see [[lint]]
+- A trap is a paragraph that **starts** with `⚠️`. A page that says "each issue lives as a
+  `⚠️` paragraph" is prose about traps, and showing it before an edit was noise (seen in
+  an end-to-end setup)
 - The edit hook skips `⚠️` inside fenced code blocks (examples, not traps) and cuts each
   trap at 300 characters; the page holds the rest. One 1,000-character trap made a
   1,280-character message before
