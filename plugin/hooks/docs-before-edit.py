@@ -65,7 +65,9 @@ def traps(root: Path, page: str) -> list[str]:
                 fenced.add(n)
         i = 0
         while i < len(lines):
-            if i not in fenced and any(m in lines[i] for m in MARK):
+            # A trap is a paragraph that *starts* with ⚠️; one mentioned mid-sentence
+            # ("each issue lives as a `⚠️` paragraph") is prose about traps.
+            if i not in fenced and _clean(lines[i]).startswith(MARK):
                 quoted = lines[i].lstrip().startswith(">")
                 para = [_clean(lines[i])]
                 i += 1
@@ -73,7 +75,7 @@ def traps(root: Path, page: str) -> list[str]:
                     raw = lines[i]
                     if i in fenced or not raw.strip() or raw.lstrip().startswith(("#", "- ", "* ")) \
                             or quoted != raw.lstrip().startswith(">") \
-                            or any(m in raw for m in MARK):
+                            or _clean(raw).startswith(MARK):
                         break
                     para.append(_clean(raw))
                     i += 1

@@ -316,10 +316,9 @@ itself. The session hook says when the copy is older than the plugin's, and
 ```bash
 git clone https://github.com/DragonBall2/llm-project-docs.git
 ln -s "$PWD/llm-project-docs/plugin/skills/project-docs-setup" ~/.claude/skills/project-docs-setup
-ln -s "$PWD/llm-project-docs/plugin/commands/project-docs-setup.md" ~/.claude/commands/project-docs-setup.md
 ```
 
-This gives you the setup skill and, after setup, the four commands. The three hooks come
+This gives you the setup skill (`/project-docs-setup`) and, after setup, the four commands. The three hooks come
 only with the plugin install.
 
 Or call the scripts directly:

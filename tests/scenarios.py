@@ -263,7 +263,8 @@ def edit_hook():
     r = new_repo("e1")
     long_trap = "> ⚠️ " + " ".join(["This trap goes on and on."] * 40)
     page(r, "subsystems", "app", ["src/app.py"],
-         "App.\n\n> ⚠️ app must stay pure,\n> or the cache lies.\n\n```\n# ⚠️ an example inside a code block\n```\n\n" + long_trap)
+         "App.\n\n> ⚠️ app must stay pure,\n> or the cache lies.\n\n```\n# ⚠️ an example inside a code block\n```\n\n"
+         "Each issue lives as a `⚠️` paragraph on its page.\n\n" + long_trap)
     page(r, "subsystems", "none", ["src/util.py"], "No traps here.")
     git(r, "add", "-A"); git(r, "commit", "-qm", "pages")
 
@@ -271,6 +272,7 @@ def edit_hook():
     record(A, "file with traps", "app must stay pure, or the cache lies." in ctx, "", ms, ctx)
     record(A, "⚠️ inside a fenced code block", "an example inside a code block" not in ctx,
            "a code example is not a trap", None, ctx)
+    record(A, "⚠️ mentioned mid-sentence", "Each issue lives" not in ctx, "prose about traps is not a trap", None, ctx)
     record(A, "one very long trap paragraph", len(ctx) < 1200, f"message is {len(ctx)} chars", None, ctx)
     ctx2, ms, rc = edit(r, r / "src/app.py")
     record(A, "same file again, same session", ctx2 == "", "", ms, ctx2)
