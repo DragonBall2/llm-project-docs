@@ -10,7 +10,8 @@ silently get wrong:
   stale        moving the code this page points at is detected
   unverified   a page with no code: sources is "cannot decide", not "fine";
                a sha that moved with no body change is reported, not failed
-  problem      a verified_at sha the repository does not contain fails
+  missing sha  a verified_at the repository does not contain (squash merge) is
+               unverified with a hint, not a failure
   problem      a broken [[link]] fails and exits 1
   json         counts come out language-independently, for the hook to read
   hook         silent when clean, names drifted pages when not, never blocks;
@@ -79,18 +80,27 @@ def hook(repo: Path) -> subprocess.CompletedProcess:
                           capture_output=True, text=True, env=env)
 
 
-def after_commit(repo: Path, command: str = "git add -A && git commit -qm x && git push",
-                 session: str = "t") -> str:
-    """Run the post-commit hook as Claude Code would, return additionalContext.
+_calls = [0]
 
-    The default command is chained on purpose: that is how the first external user
-    ran it, and a `Bash(git commit *)` pattern in hooks.json never matched it.
+
+def bash_call(repo: Path, command: str = "git add -A && git commit -qm x && git push",
+              action=None, session: str = "t") -> str:
+    """One Bash tool call as Claude Code runs it: PreToolUse, the command, PostToolUse.
+
+    `action` stands in for the command's effect on the repository. The commit hook
+    records HEAD before and reports only if this call moved it to a new commit. The
+    default command is chained on purpose: that is how the first external user ran it.
     """
-    payload = _json_mod.dumps({"cwd": str(repo), "hook_event_name": "PostToolUse",
-                               "tool_name": "Bash", "session_id": session,
-                               "tool_input": {"command": command}})
-    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], input=payload,
-                       capture_output=True, text=True, cwd=repo)
+    _calls[0] += 1
+    base = {"cwd": str(repo), "tool_name": "Bash", "session_id": session,
+            "tool_use_id": f"toolu_t{os.getpid()}_{_calls[0]}", "tool_input": {"command": command}}
+    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo,
+                       input=_json_mod.dumps({**base, "hook_event_name": "PreToolUse"}))
+    assert r.returncode == 0 and r.stdout.strip() == "", "the before-side records and says nothing"
+    if action:
+        action()
+    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo,
+                       input=_json_mod.dumps({**base, "hook_event_name": "PostToolUse"}))
     assert r.returncode == 0, "commit hook must never fail a commit"
     if not r.stdout.strip():
         return ""
@@ -179,9 +189,11 @@ def main() -> int:
         # --- stale: move the code the pages point at ------------------------
         git(repo, "add", "-A")
         git(repo, "commit", "-qm", "docs")
-        (repo / "src" / "app.py").write_text("def hello():\n    return 2\n", encoding="utf-8")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-qm", "feat")
+        def feat():
+            (repo / "src" / "app.py").write_text("def hello():\n    return 2\n", encoding="utf-8")
+            git(repo, "add", "-A")
+            git(repo, "commit", "-qm", "feat")
+        feat_ctx = bash_call(repo, action=feat)
 
         r = lint(repo)
         assert "2 stale" in r.stdout, f"both code-backed pages should be stale:\n{r.stdout}"
@@ -198,58 +210,70 @@ def main() -> int:
             f"a session opened in a subfolder must still find the wiki at the repo root:\n{h.stdout}"
 
         # --- post-commit hook: names the pages that cover what just changed --
-        ctx = after_commit(repo)
+        ctx = feat_ctx
         assert "overview" in ctx and "glossary" in ctx, \
             f"commit hook should name both pages that point at src/app.py:\n{ctx}"
         assert "src/app.py" in ctx, f"commit hook should name the changed file:\n{ctx}"
         assert "verified_at" in ctx, "commit hook should say what to do"
-        assert after_commit(repo) == "", "same HEAD again in this session -> silent"
-        assert after_commit(repo, session="t2") != "", "a new session reports it once more"
-        assert after_commit(repo, "ls && echo hi", session="t3") == "", \
-            "a command that does not run git or gh must be silent even with a new HEAD"
+        assert bash_call(repo, "git status") == "", "a call that did not move HEAD is silent"
+        assert bash_call(repo, "ls && echo hi") == "", "a call that is not git at all is silent"
+
+        def commit_all(msg):
+            return lambda: (git(repo, "add", "-A"), git(repo, "commit", "-qm", msg))
+
+        # a commit typed in a terminal, then the agent's next git call: not the agent's change
+        (repo / "src" / "app.py").write_text("def hello():\n    return 22\n", encoding="utf-8")
+        commit_all("typed in a terminal")()
+        assert bash_call(repo, "git status") == "", \
+            "a commit someone else made must not be reported as what this call just did"
+        assert bash_call(repo, "git log --oneline -1 | grep commit") == "", \
+            "nor by a later call that merely mentions commit"
 
         # docs-only commit is not drift -> silent
         (repo / "docs" / "concepts" / "glossary.md").write_text(
             (repo / "docs" / "concepts" / "glossary.md").read_text(encoding="utf-8") + "\nnote\n",
             encoding="utf-8")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-qm", "docs: tweak")
-        assert after_commit(repo) == "", "docs-only commit must be silent"
+        assert bash_call(repo, action=commit_all("docs: tweak")) == "", "docs-only commit must be silent"
 
         # a new file no page covers -> named, so the wiki can grow
         (repo / "tools").mkdir()
         (repo / "tools" / "z.py").write_text("x = 1\n", encoding="utf-8")
         (repo / "tests").mkdir()
         (repo / "tests" / "test_z.py").write_text("x = 1\n", encoding="utf-8")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-qm", "chore: tool")
-        ctx = after_commit(repo)
+        ctx = bash_call(repo, action=commit_all("chore: tool"))
         assert "tools/z.py" in ctx and "no page describes" in ctx, \
             f"a new file no page covers should be named:\n{ctx}"
         assert "test_z.py" not in ctx, f"tests are not news:\n{ctx}"
         # ...but changing an existing uncovered file is still silent
         (repo / "tools" / "z.py").write_text("x = 2\n", encoding="utf-8")
-        git(repo, "add", "-A")
-        git(repo, "commit", "-qm", "chore: tool again")
-        assert after_commit(repo) == "", "an edit to an existing uncovered file must be silent"
+        assert bash_call(repo, action=commit_all("chore: tool again")) == "", \
+            "an edit to an existing uncovered file must be silent"
 
-        # commits made without the word "commit": a merge brings src/app.py
+        # a commit made without the word "commit": the merge brings src/app.py
         git(repo, "checkout", "-qb", "feature")
         (repo / "src" / "app.py").write_text("def hello():\n    return 3\n", encoding="utf-8")
         git(repo, "commit", "-qam", "feat: three")
         git(repo, "checkout", "-q", "main")
-        git(repo, "merge", "-q", "--no-ff", "-m", "merge feature", "feature")
-        ctx = after_commit(repo, "git merge --no-ff feature", session="t5")
+        ctx = bash_call(repo, "git merge --no-ff feature",
+                        action=lambda: git(repo, "merge", "-q", "--no-ff", "-m", "merge feature", "feature"))
         assert "[[overview]]" in ctx and "src/app.py" in ctx, \
             f"a merge commit must report what it brought in:\n{ctx}"
-        # an old HEAD is not something this call made: a fast-forward pull, a `git log`
+
+        # HEAD moved to a commit that already existed: fast-forward, checkout, reset
+        git(repo, "checkout", "-qb", "older")
         (repo / "src" / "app.py").write_text("def hello():\n    return 4\n", encoding="utf-8")
         old = {**os.environ, "GIT_COMMITTER_DATE": "2020-01-01T00:00:00", "GIT_AUTHOR_DATE": "2020-01-01T00:00:00"}
         r = subprocess.run(["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "old"],
                            cwd=repo, env=old, capture_output=True, text=True)
         assert r.returncode == 0, r.stderr
-        assert after_commit(repo, "git pull --ff-only", session="t6") == "", \
-            "a HEAD committed long ago was not made by this call"
+        git(repo, "checkout", "-q", "main")
+        assert bash_call(repo, "git merge --ff-only older",
+                         action=lambda: git(repo, "merge", "-q", "--ff-only", "older")) == "", \
+            "moving HEAD to an existing commit is not this call's change"
+        # a pull: what it brings was written elsewhere
+        (repo / "src" / "app.py").write_text("def hello():\n    return 5\n", encoding="utf-8")
+        assert bash_call(repo, "git pull", action=commit_all("pulled")) == "", \
+            "a pull is reported by the session hook, not as this call's change"
 
         # --- unverified: sha moved with no body change (silent bump) ---------
         head = run("git", "rev-parse", "--short", "HEAD", cwd=repo).stdout.strip()
@@ -264,13 +288,13 @@ def main() -> int:
             f"verified_at moved past the feat commit with no body change:\n{r.stdout}"
         assert "1 stale" in r.stdout, f"only glossary should still be stale:\n{r.stdout}"
 
-        # --- problem: a verified_at the repo does not contain ---------------
+        # --- a verified_at the repo does not contain: squash merge, shallow clone ---
         gl = repo / "docs" / "concepts" / "glossary.md"
         gl.write_text(re.sub(r"^verified_at: \S+", "verified_at: deadbee",
                              gl.read_text(encoding="utf-8"), flags=re.M), encoding="utf-8")
         r = lint(repo)
-        assert r.returncode == 1 and "verified_at commit not found: glossary" in r.stdout, \
-            f"an unknown sha is a broken claim, not a weak one:\n{r.stdout}"
+        assert r.returncode == 0 and "glossary -- verified_at deadbee is not in this repository" in r.stdout, \
+            f"a missing sha is usually a squash merge: unverified, not a failure:\n{r.stdout}"
         git(repo, "checkout", "--", str(gl))
 
         # --- pre-edit hook: traps come to the edit ---------------------------
@@ -322,7 +346,7 @@ def main() -> int:
         assert h.returncode == 0 and h.stdout.strip() == "", \
             f"hook must say nothing where there is no wiki:\n{h.stdout}"
 
-        assert after_commit(bare) == "", "commit hook must be silent without a wiki"
+        assert bash_call(bare) == "", "commit hook must be silent without a wiki"
 
         # --- no git: scaffold refuses instead of writing a placeholder sha ---
         nogit = tmp / "nogit"
@@ -334,6 +358,40 @@ def main() -> int:
         git(nogit, "init", "-q", "-b", "main")
         r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=nogit)
         assert r.returncode == 1, "a repository with no commit yet has no baseline either"
+
+        # --- docs/ owned by a documentation site: scaffold refuses ----------
+        site = tmp / "site"
+        (site / "docs").mkdir(parents=True)
+        (site / "docs" / "intro.md").write_text("# Intro\n", encoding="utf-8")
+        (site / "mkdocs.yml").write_text("site_name: x\n", encoding="utf-8")
+        git(site, "init", "-q", "-b", "main")
+        git(site, "add", "-A")
+        git(site, "commit", "-qm", "init")
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=site)
+        assert r.returncode == 1 and "documentation site" in r.stderr and "mkdocs.yml" in r.stderr, \
+            f"scaffold must refuse a docs/ that a site generator owns:\n{r.stderr}"
+        assert sorted(p.name for p in (site / "docs").iterdir()) == ["intro.md"], \
+            "a refused scaffold must not touch the site's docs/"
+
+        # --- .claude/ gitignored: scaffold warns and prints the fix ---------
+        ign = tmp / "ign"
+        (ign / "src").mkdir(parents=True)
+        (ign / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")
+        (ign / ".gitignore").write_text(".claude/\n", encoding="utf-8")
+        git(ign, "init", "-q", "-b", "main")
+        git(ign, "add", "-A")
+        git(ign, "commit", "-qm", "init")
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=ign)
+        assert r.returncode == 0 and "is gitignored here" in r.stdout and "!.claude/scripts/" in r.stdout, \
+            f"scaffold must warn when its linter will not be committed:\n{r.stdout}"
+        printed = [l.strip() for l in r.stdout.splitlines() if l.lstrip().startswith((".claude", "!.claude"))]
+        (ign / ".gitignore").write_text("\n".join(printed) + "\n", encoding="utf-8")
+        for f, kept in ((".claude/scripts/docs-lint.py", True), (".claude/commands/docs-lint.md", True),
+                        (".claude/settings.local.json", False)):
+            ok = run("git", "check-ignore", "-q", f, cwd=ign).returncode != 0
+            assert ok == kept, f"the printed .gitignore lines must {'keep' if kept else 'still ignore'} {f}"
+        r = run(sys.executable, str(SCAFFOLD), "--root", ".", cwd=ign)
+        assert "is gitignored here" not in r.stdout, "with the fix in place the warning stops"
 
         # --- setup hint: once, to the user, only in a git repo with code -----
         fresh = tmp / "fresh"
@@ -368,7 +426,8 @@ def main() -> int:
         # The edit hook keeps a once-per-session marker in the temp dir; drop ours.
         for m in Path(tempfile.gettempdir()).glob(f"docs-before-edit-t{os.getpid()}*"):
             m.unlink(missing_ok=True)
-        for m in Path(tempfile.gettempdir()).glob("docs-after-commit-t*"):
+        for m in [*Path(tempfile.gettempdir()).glob("docs-after-commit-t*"),
+                  *Path(tempfile.gettempdir()).glob(f"docs-head-toolu_t{os.getpid()}_*")]:
             m.unlink(missing_ok=True)
 
 

@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """After a code commit, tell the agent which pages describe what it just changed.
 
-Fires after every Bash call (PostToolUse) and decides here whether that call made a
-commit: the command runs `git` or `gh`, HEAD was committed in the last few minutes, and
-HEAD is not the one this session last reported. A `matcher`/`if` pattern in hooks.json
-cannot do this -- permission-style patterns match a command that *starts* with
-`git commit`, and the first external user chained `git add && git commit && git push`
-and got nothing. Looking for the word "commit" was the next mistake: `git merge`,
-`git cherry-pick`, `git revert`, `gh pr merge` and aliases like `git ci` all make
-commits without saying so. HEAD's committer time is what actually answers "did this
-call just commit": a `git pull` that fast-forwards brings old commits and stays quiet
-(the session hook covers those), and `git log` right after a commit in the same
-session is stopped by the once-per-HEAD record.
+Runs on both sides of every Bash call. Before (PreToolUse) it records HEAD; after
+(PostToolUse) it speaks only if *that call* moved HEAD to a commit made during it. That
+is the only reliable answer to "did the agent just commit", and each earlier answer
+broke on real use:
+  - `if: "Bash(git commit *)"` in hooks.json matched only commands that *start* with
+    git commit; the first external user chained `git add && git commit && git push`
+  - looking for the word "commit" missed `git merge`, `cherry-pick`, `revert`, aliases
+  - "HEAD is under 10 minutes old" (1.5.0) reported a commit a human typed in a
+    terminal, or another session made, as "what you just did" to an agent with no
+    context for it
+A `git pull` is skipped: what it brings was written elsewhere, and the session hook
+reports it next time. A checkout or reset that moves HEAD to an older commit is skipped
+by the committer-time check.
 
 Works out which wiki pages point at the files
 in that commit and hands the list back through `additionalContext`, so the agent --
@@ -49,8 +51,8 @@ import tempfile
 import time
 from pathlib import Path
 
-GIT_RE = re.compile(r"\b(git|gh)\b")
-FRESH = 600  # seconds: a commit this call made is younger than this
+PULL_RE = re.compile(r"\bgit\b[^|;&\n]*\bpull\b")
+SLACK = 5  # seconds of clock slack between recording HEAD and the commit being made
 NOT_NEWS = re.compile(r"(^|/)(docs|\.claude|tests?|__tests__|spec)/|(^|/)\.|(^|/)CLAUDE\.md$"
                       r"|(^|/)test_[^/]*$|[._]test\.|\.spec\.|\.lock$|-lock\.(json|yaml)$")
 
@@ -90,34 +92,44 @@ def changed(root: Path, only_added: bool = False) -> list[str]:
     return [f for f in out.split("\0") if f]
 
 
+def record(payload: dict) -> Path:
+    key = payload.get("tool_use_id") or payload.get("session_id") or "x"
+    return Path(tempfile.gettempdir()) / f"docs-head-{re.sub(r'[^A-Za-z0-9_-]', '', str(key))}"
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
     except Exception:
         return 0
 
-    if not GIT_RE.search((payload.get("tool_input") or {}).get("command") or ""):
-        return 0
-
-    root = Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
-    top = git(root, "rev-parse", "--show-toplevel")
-    if top:
-        root = Path(top)
+    cwd = Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
+    out = git(cwd, "rev-parse", "--show-toplevel", "HEAD").splitlines()
+    if len(out) < 2 or not re.fullmatch(r"[0-9a-f]{40}", out[1]):
+        return 0  # not a repository, or no commit yet
+    root, head = Path(out[0]), out[1]
     if not (root / "docs").is_dir():
         return 0
 
-    sha = git(root, "rev-parse", "--short", "HEAD")
-    if not sha:
+    rec = record(payload)
+    if payload.get("hook_event_name") == "PreToolUse":
+        rec.write_text(f"{head} {int(time.time())}\n", encoding="utf-8")
+        return 0
+
+    # PostToolUse: did this call move HEAD to a commit it made?
+    try:
+        before, started = rec.read_text(encoding="utf-8").split()
+        rec.unlink()
+    except Exception:
+        return 0  # no record of HEAD before the call: say nothing rather than guess
+    if head == before:
+        return 0
+    if PULL_RE.search((payload.get("tool_input") or {}).get("command") or ""):
         return 0
     ct = git(root, "log", "-1", "--format=%ct", "HEAD")
-    if not ct.isdigit() or time.time() - int(ct) > FRESH:
-        return 0  # HEAD is not something this call just made
-    # Once per commit per session: a later command that mentions "commit" without
-    # moving HEAD (a heredoc, a `git log`) must not repeat the last report.
-    seen = Path(tempfile.gettempdir()) / f"docs-after-commit-{payload.get('session_id', 'x')}"
-    if seen.exists() and seen.read_text(encoding="utf-8").strip() == sha:
-        return 0
-    seen.write_text(sha + "\n", encoding="utf-8")
+    if not ct.isdigit() or int(ct) < int(started) - SLACK:
+        return 0  # HEAD moved to an existing commit: checkout, reset, fast-forward
+    sha = git(root, "rev-parse", "--short", "HEAD")
 
     files = changed(root)
     if not files:

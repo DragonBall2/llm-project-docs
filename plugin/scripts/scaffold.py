@@ -46,6 +46,22 @@ DEFAULT_CATEGORIES = [
 # Excluded when deciding "did the code change" (exclude list, not include list -- see SKILL.md)
 DEFAULT_EXCLUDES = ["docs", ".claude", "CLAUDE.md"]
 
+# A documentation site generator that owns docs/. Scaffolding the wiki into it would
+# put CLAUDE.md, index.md and seven category folders where the site build picks them up.
+DOC_SITE_MARKERS = [
+    "docusaurus.config.js", "docusaurus.config.ts", "docusaurus.config.mjs",
+    "docusaurus.config.cjs", "mkdocs.yml", "mkdocs.yaml", "docs/conf.py",
+    "docs/_config.yml", "docs/.vitepress", ".vitepress",
+]
+
+# What to put in .gitignore when the repo ignores .claude/ wholesale: personal settings
+# and commands stay ignored, the linter and the /docs-* commands get committed.
+GITIGNORE_KEEP = """.claude/*
+!.claude/scripts/
+!.claude/commands/
+.claude/commands/*
+!.claude/commands/docs-*.md"""
+
 # Where the vendored linter lands inside the target repo.
 LINT_REL = ".claude/scripts/docs-lint.py"
 
@@ -508,6 +524,16 @@ def main() -> int:
                   file=sys.stderr)
             return 1
 
+    site = [m for m in DOC_SITE_MARKERS if (root / m).exists()]
+    if site and args.docs_dir == "docs":
+        print(f"x {root / 'docs'} belongs to a documentation site ({', '.join(site)}).\n"
+              "  The wiki would add CLAUDE.md, index.md and category folders where the site\n"
+              "  build picks them up, and splitting the site's pages would break it. A wiki\n"
+              "  outside docs/ is not supported yet; if you need it, say so at\n"
+              "  https://github.com/DragonBall2/llm-project-docs/issues",
+              file=sys.stderr)
+        return 1
+
     sections = "\n\n".join(
         f"## {slug}\n\n<!-- TODO: pages under {desc or slug}. `- [[page-name]] -- one line` -->"
         for slug, desc, _ in cats
@@ -577,6 +603,15 @@ def main() -> int:
     for p in skipped:
         print(f"  = {p.relative_to(root)} (exists, skipped)")
     print()
+    import subprocess
+    ignored = subprocess.run(["git", "-C", str(root), "check-ignore", "-q", LINT_REL],
+                             capture_output=True).returncode == 0
+    if ignored:
+        print(f"! {LINT_REL} is gitignored here, so the linter and the /docs-* commands will\n"
+              "  not be committed: teammates and CI will not have them. To keep them while\n"
+              "  personal .claude files stay ignored, replace the `.claude/` line in\n"
+              "  .gitignore with the lines below. Ask the user before changing .gitignore.\n")
+        print("    " + GITIGNORE_KEEP.replace("\n", "\n    ") + "\n")
     print("Next: fill in the pages per category and clear the TODOs in docs/index.md.")
     print(f"      When done, verify with: python3 {LINT_REL} --root .")
     return 0

@@ -22,7 +22,7 @@ from pathlib import Path
 # Bumped when this file's behaviour changes. The SessionStart hook compares the copy
 # in a repository against the plugin's and says so when they differ; a translated
 # fork keeps the same number once it has the same logic.
-LINT_VERSION = "1"
+LINT_VERSION = "2"
 
 REQUIRED_FM = ("title", "type", "verified_at")
 META_PAGES = {"index", "log", "CLAUDE", "README"}
@@ -186,9 +186,14 @@ def main() -> int:
     known = commits(root, {sha for _, sha, _ in todo})
     for name, sha, live in todo:
         if sha not in known:
-            # The commit the declaration points at is not in the repo
-            # (typo, rebase, force-push). That is a broken claim, not a weak one.
-            problems.append(f"verified_at commit not found: {name} -> {sha}")
+            # The commit the declaration points at is not in this repository. It used to
+            # be a problem ("a broken claim"), but the usual cause is not a broken claim:
+            # a page verified on a branch that was squash- or rebase-merged, or a shallow
+            # clone that never had the commit. Failing every such page on every run taught
+            # people to ignore the linter, so it is now "cannot be decided", like the rest.
+            unverified.append(f"{name} -- verified_at {sha} is not in this repository "
+                              "(squash or rebase merge, shallow clone?); re-check the page "
+                              "and move verified_at to a commit on this branch")
     todo = [t for t in todo if t[1] in known]
 
     # One walk for every page instead of `git log <sha>..HEAD -- <sources>` per page.

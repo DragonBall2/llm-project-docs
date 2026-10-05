@@ -29,6 +29,13 @@ Tell the user that, and that `git init` plus a first commit is all it takes; off
 it, but only do it if they say yes -- creating a repository in someone's folder is their
 decision. Once there is a commit, start again from Step 0.
 
+**If `docs/` belongs to a documentation site, stop here too.** Look for
+`docusaurus.config.*`, `mkdocs.yml`, `docs/conf.py` (Sphinx), `docs/_config.yml` (GitHub
+Pages) or a `.vitepress` folder. The wiki would put its files where the site build picks
+them up, and "split the existing docs" would restructure the site. A wiki outside
+`docs/` is not supported yet: say so, and point the user at the issues link at the end
+of this file if they need it. The scaffold refuses this case as well.
+
 **If `docs/CLAUDE.md` exists, this repository already has the wiki. Do not scaffold and
 do not split anything** -- the pages are already pages, and "split along headings" would
 tear them apart. Rerunning means one of these, and each has its own answer:
@@ -80,7 +87,11 @@ SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*pro
 python3 "$SCAFFOLD" --root <repo> --name "<project>" --lang <language> [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
 ```
 
-Existing files are left alone. Afterwards fill in the two TODOs in `docs/CLAUDE.md`: the
+Existing files are left alone. **If the scaffold warns that `.claude/` is gitignored**, show
+the user the warning and the replacement lines it prints, and change `.gitignore` only if
+they say yes. Otherwise the linter and the `/docs-*` commands never reach teammates or CI.
+
+Afterwards fill in the two TODOs in `docs/CLAUDE.md`: the
 **"when you change code"** table and the **security** section.
 
 The scaffold also copies the linter to `<repo>/.claude/scripts/docs-lint.py`, and the

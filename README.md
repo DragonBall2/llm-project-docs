@@ -167,8 +167,10 @@ silently misses them, and missing is the dangerous failure.
 | **stale** | the code this page points at **changed** | `/docs-sync` |
 | **unverified** | freshness **cannot be decided** | a human has to read it |
 
-A page is unverified when it has no `code:` sources, when they have all disappeared, or
-when **the sha moved past N code commits without a single word of the body changing.**
+A page is unverified when it has no `code:` sources, when they have all disappeared, when
+its `verified_at` commit is not in the repository (a squash- or rebase-merged branch, a
+shallow clone), or when **the sha moved past N code commits without a single word of the
+body changing.**
 
 That last one matters. `verified_at` is a *declaration, not proof* — nothing stops someone
 bumping it without reading anything. The silent-bump check is the one place where "did you
@@ -193,8 +195,10 @@ the hard way and the code cannot tell you; the rest is a pointer at the code.
 Three hooks put the documentation into the flow you are already in, instead of asking
 you to remember it later.
 
-**Right after a code commit**, the agent is told which pages describe what it just
-changed:
+**Right after a commit the agent makes**, it is told which pages describe what it just
+changed. The hook records HEAD before every Bash call and speaks only if that call moved
+HEAD to a new commit, so a merge or a cherry-pick counts and a commit someone typed in a
+terminal does not:
 
 ```
 docs: commit 1edecec changed code that 2 docs page(s) describe.
@@ -266,6 +270,8 @@ but a rule in a file is not a mechanism. These are the mechanism.
 
 - **Find contradictions between pages, or duplicated prose.** Those need reading. The
   linter is deliberately limited to what a script can decide
+- **Live in a documentation site's `docs/`.** If Docusaurus, MkDocs, Sphinx, VitePress or
+  GitHub Pages owns `docs/`, setup stops instead of mixing the wiki into the site
 - **Work without git.** `verified_at` is a commit sha. Setup stops in a folder with no
   repository or no commit yet; `git init` and a first commit are all it needs
 - **Keep line-number citations honest.** The linter checks that a cited line is inside the
