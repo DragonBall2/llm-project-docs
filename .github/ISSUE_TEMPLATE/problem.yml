@@ -1,0 +1,69 @@
+name: Something went wrong
+description: Setup did something unexpected, a hook said something wrong or nothing at all, or the linter misjudged a page.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. A few facts up front save a round of questions.
+        **Do not paste secrets, hostnames or private paths from your docs/.** Trim them, or describe the shape instead.
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part
+      options:
+        - /project-docs-setup (the setup run)
+        - Before an edit (the ⚠️ traps shown before a file is edited)
+        - After a commit (the pages named after the agent commits)
+        - Session start (stale pages, problems, linter copy, setup hint)
+        - /docs-sync, /docs-lint, /docs-query or /docs-status
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+      description: One or two sentences each is enough.
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: What Claude Code showed
+      description: For setup, the last few lines of the final report. For a hook, the message (or "nothing"). Trim anything private.
+      render: text
+  - type: input
+    id: cc
+    attributes:
+      label: Claude Code version
+      description: Output of `claude --version`
+      placeholder: 2.1.295 (Claude Code)
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Plugin version
+      description: Shown in `/plugin` under Installed, e.g. 1.8.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Where Claude Code runs
+      options:
+        - macOS
+        - Linux
+        - Windows (native)
+        - Windows + WSL, repository on the Linux filesystem
+        - Windows + WSL, repository under /mnt/c or /mnt/d
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Repository shape
+      description: Rough size and anything unusual. Commits, number of docs pages, monorepo, worktrees, squash merges, a docs site in docs/...
+      placeholder: ~3,000 commits, 25 pages, squash-merged PRs

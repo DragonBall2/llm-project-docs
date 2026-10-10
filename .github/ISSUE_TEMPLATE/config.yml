@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: How it works
+    url: https://github.com/DragonBall2/llm-project-docs#readme
+    about: The README covers what setup writes, the three hooks and when each stays quiet.

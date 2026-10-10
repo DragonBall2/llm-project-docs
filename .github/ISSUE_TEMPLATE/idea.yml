@@ -1,0 +1,17 @@
+name: Idea or missing case
+description: Something this does not handle yet, or a workflow it gets in the way of.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: situation
+    attributes:
+      label: The situation
+      description: What you were doing, and where the plugin fell short or got in the way.
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: What would have helped
+    validations:
+      required: false
