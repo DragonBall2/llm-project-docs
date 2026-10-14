@@ -181,3 +181,12 @@ the sha 33%; `/docs-sync` was never run in 20 session notices. The prose was mos
 current, the bookkeeping was not, so the stale list stopped meaning anything. 1.9.0
 (`5272c77`) names pages edited without moving `verified_at`, and the commit notice now
 says what moving it is for instead of only warning against it. See [[hooks]].
+
+## [2026-10-14] 1.10.0 | the stale notice was invisible to the user
+
+Opening a fresh gwiroman session showed nothing, yet its transcript held the hook's
+"28 pages stale" output: plain SessionStart stdout goes only to the agent. The setup
+hint had always used `systemMessage` and was visible; the stale notice never was. So the
+question "why did you never run /docs-sync after 20 notices" had a wrong premise: the
+user saw none of them. 1.10.0 (`6a1d9d4`) shows the user one line when the state changes
+and keeps the full list for the agent. See [[hooks]].

@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-14
 sources:
   - code: plugin/hooks/
-verified_at: 5272c77
+verified_at: 6a1d9d4
 ---
 
 # Hooks
@@ -43,6 +43,13 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 - The edit hook skips `⚠️` inside fenced code blocks (examples, not traps) and cuts each
   trap at 300 characters; the page holds the rest. One 1,000-character trap made a
   1,280-character message before
+> ⚠️ Plain stdout from a SessionStart hook reaches **only the agent**; the user never sees
+> it. Only `systemMessage` is shown on screen. Until 1.10.0 the stale-pages notice was
+> plain output: the author's own project showed "31 pages stale" to agents for weeks, the
+> user never saw it, and `/docs-sync`, which the user runs, was never run. Now the user
+> gets one line as `systemMessage` when the state changed since it was last shown, and the
+> agent gets the full list as `additionalContext` every session.
+
 - The session hook names up to three problems from the linter's `problem_list` instead of
   only counting them, and gives no setup hint where a doc-site generator owns `docs/`
   (it reads the scaffold's own marker list, so the hint and the refusal cannot disagree)

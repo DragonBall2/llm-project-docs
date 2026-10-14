@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-14
 sources:
   - code: plugin/hooks/
-verified_at: 5272c77
+verified_at: 6a1d9d4
 ---
 
 # Decision: hooks point, they do not fix
@@ -26,7 +26,8 @@ No wiki, docs-only commit, a file no page covers, a covered file with no ⚠️ 
 already shown this session: nothing. A hook that speaks every session is noise, and noise
 is how a signal stops being believed. The SessionStart hook speaks only when the linter
 reports stale or problem pages, or when the repository's linter copy is older than the
-plugin's ([[vendored-linter]]).
+plugin's ([[vendored-linter]]). And it tells the *user* only when that state changed
+since the last time they were told; the agent gets the list every session.
 
 The one deliberate exception is the setup hint ([[hooks]]): a repository with code and no
 wiki gets a single line, once, ever. Silence there was not noise avoided, it was the next
