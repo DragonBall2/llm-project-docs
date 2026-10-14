@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-10-05
+updated: 2026-10-14
 sources:
   - code: plugin/hooks/
-verified_at: 8eab999
+verified_at: 5272c77
 ---
 
 # Decision: hooks point, they do not fix
@@ -36,6 +36,10 @@ repository, it cannot become the every-session noise this rule exists to prevent
 The commit hook's mention of new files no page covers (1.5.0) is the same kind of
 exception: once per commit, only for files the commit added, and only when nothing
 covers them. Silence there meant the wiki could be corrected but never grow.
+
+So is the mention of pages edited without moving `verified_at` (1.9.0): once per commit,
+only for those pages. Silence there let a whole wiki read stale while its prose was
+current, which is the noise this rule exists to prevent, arrived at the other way.
 
 ## 3. Every path exits 0
 

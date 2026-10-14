@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-06
+updated: 2026-10-14
 sources:
   - code: plugin/hooks/
-verified_at: 8eab999
+verified_at: 5272c77
 ---
 
 # Hooks
@@ -61,6 +61,16 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
   cherry-picks, and "HEAD under 10 minutes old" (1.5.0 only) reported a commit typed in
   a terminal as the agent's own. `git pull` is skipped, since what it brings was written
   elsewhere. A merge is diffed against its first parent
+- It names pages a commit **edited without moving `verified_at`** (1.9.0), docs-only
+  commits included. In gwiroman, 67 of 92 page-touching commits did exactly that and 31
+  of 33 pages read stale while their prose was current. An edit that moves
+  `verified_at` is silent, and so is a new page, whose diff adds the line
+
+> ⚠️ Say what an action is for, not only when not to do it. The commit notice used to end
+> with "do not move `verified_at` without checking"; after it, agents edited docs 69% of
+> the time and moved the sha 33%. It now says moving it is what takes the page off the
+> stale list.
+
 - It also names files the commit **added** that no page covers. Without that, the wiki
   could only ever be corrected, never grown: a new subsystem matches no page's sources, so
   nothing mentioned it. Tests, dotfiles, lockfiles and anything under `docs/` or

@@ -7,7 +7,7 @@ sources:
   - code: plugin/.claude-plugin/plugin.json
   - code: .claude-plugin/marketplace.json
   - code: plugin/scripts/scaffold.py
-verified_at: 8eab999
+verified_at: 5272c77
 ---
 
 # Layout

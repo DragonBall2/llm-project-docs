@@ -172,3 +172,12 @@ the same name that the skill never mentioned. Every procedure change since 1.3.2
 reached no agent. Merged into `SKILL.md`, command file deleted, required ending stated
 before the steps. Checked with `--plugin-dir` **before** pushing: both setups ended with
 the issues line, kept `SPEC.md` and asked, and wrote 15 and 6 `⚠️` traps. See [[scaffold]].
+
+## [2026-10-14] 1.9.0 | why the author's own wiki read 31 of 33 stale
+
+Read-only look at gwiroman: 67 of 92 commits that touched a page edited the body and left
+`verified_at` alone; after a commit notice agents edited docs 69% of the time but moved
+the sha 33%; `/docs-sync` was never run in 20 session notices. The prose was mostly
+current, the bookkeeping was not, so the stale list stopped meaning anything. 1.9.0
+(`5272c77`) names pages edited without moving `verified_at`, and the commit notice now
+says what moving it is for instead of only warning against it. See [[hooks]].
