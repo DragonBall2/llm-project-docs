@@ -74,10 +74,11 @@ def edit(repo, path, session="s", tool="Edit"):
 
 def session(repo):
     r, ms = hook(H_SESSION, {}, {"CLAUDE_PROJECT_DIR": str(repo)})
-    out = r.stdout.strip()
-    user = ""
+    out, user = r.stdout.strip(), ""
     if out.startswith("{"):
-        user, out = json.loads(out).get("systemMessage", ""), ""
+        d = json.loads(out)
+        user = d.get("systemMessage", "")
+        out = (d.get("hookSpecificOutput") or {}).get("additionalContext", "")
     return out, user, ms, r.returncode
 
 
@@ -324,6 +325,10 @@ def session_hook():
     write(r, "src/util.py", "y = 2\n"); git(r, "commit", "-qam", "drift")
     out, user, ms, rc = session(r)
     record(A, "12 stale pages", "and 4 more" in out, "lists 8 and a count", ms, out)
+    record(A, "stale pages: the user sees one line", "12 page(s) are behind the code" in user and "\n" not in user,
+           "plain output reaches only the agent", None, user)
+    out, user, ms, rc = session(r)
+    record(A, "same state next session", user == "" and "and 4 more" in out, "user not told twice; agent still is", ms, out)
 
     (r / ".claude/scripts/docs-lint.py").write_text(
         (r / ".claude/scripts/docs-lint.py").read_text().replace('LINT_VERSION = "', 'LINT_VERSION = "0'))

@@ -19,9 +19,10 @@ llm-project-docs runs entirely on your machine. It collects nothing and sends no
 - Two small marker files in the system temp directory, named after the session id, so a
   hook does not repeat the same notice within one session. They hold a file path or a
   commit hash and nothing else.
-- One file in the plugin's own data directory (`~/.claude/plugins/data/...`) listing
-  which repositories have already been shown the one-time setup hint. Each entry is a
-  truncated SHA-256 hash of the repository path, not the path itself.
+- Two files in the plugin's own data directory (`~/.claude/plugins/data/...`): which
+  repositories have been shown the one-time setup hint, and the last stale-pages count
+  shown to you per repository, so the same line is not repeated every session. Each
+  entry is keyed by a truncated SHA-256 hash of the repository path, not the path.
 
 **What it sends**
 

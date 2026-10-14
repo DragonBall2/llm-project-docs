@@ -219,7 +219,8 @@ a week later and all of that has to be reconstructed from a diff — the *what* 
 in git, the *why* does not.
 
 **At session start**, a second hook reports anything that drifted earlier and was never
-picked up, furthest behind first:
+picked up. You get one line when the state has changed since you last saw it; the agent
+gets the full list, furthest behind first:
 
 ```
 docs: 3 page(s) describe code that moved since they were checked.

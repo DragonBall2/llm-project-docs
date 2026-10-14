@@ -121,6 +121,27 @@ def repo_root(start: Path) -> Path:
         return start
 
 
+def remember(root: Path, state: str) -> bool:
+    """Record this repository's notice state; True if it differs from the last one shown.
+
+    Keyed by a hash of the path, like the setup hint. If the record cannot be
+    written, show the line anyway: a repeated line is better than a silent one.
+    """
+    key = hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
+    f = data_dir() / "notice-state"
+    try:
+        seen = dict(l.split(" ", 1) for l in f.read_text(encoding="utf-8").splitlines() if " " in l) \
+            if f.exists() else {}
+        if seen.get(key, "") == state:
+            return False
+        seen[key] = state
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("".join(f"{k} {v}\n" for k, v in seen.items()), encoding="utf-8")
+    except Exception:
+        return bool(state)
+    return bool(state)
+
+
 def main() -> int:
     root = repo_root(Path(os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve())
 
@@ -157,6 +178,7 @@ def main() -> int:
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
     if not stale and not problems and not outdated:
+        remember(root, "")  # clean: the next drift is news again
         return 0
 
     out = []
@@ -176,7 +198,30 @@ def main() -> int:
     if outdated:
         out.append("docs: this repo's linter copy is older than the plugin's. Re-copy it with:\n"
                    f"  {RECOPY}")
-    print("\n".join(out))
+    # Two audiences. Plain SessionStart output reaches only the agent's context; the
+    # user never sees it. For weeks the author's own project showed "31 pages stale"
+    # to agents that did not act on it, and /docs-sync, which the *user* runs, was
+    # never run. So the user gets one short line as a systemMessage -- only when the
+    # state changed since it was last shown, or the same number every session would
+    # be ignored again -- and the agent keeps the full list every time.
+    worst = max((p.get("commits", 0) for p in pages), default=0)
+    user = []
+    if stale:
+        user.append(f"docs: {stale} page(s) are behind the code (furthest {worst} commits). "
+                    "/docs-sync brings them up to date.")
+    if problems:
+        first = (counts.get("problem_list") or [""])[0]
+        user.append(f"docs: {problems} problem(s)" + (f", e.g. {first}" if first else "")
+                    + ". /docs-lint lists them.")
+    if outdated:
+        user.append("docs: the linter copied into this repo is older than the plugin's; "
+                    "ask Claude to re-copy it.")
+    payload = {"hookSpecificOutput": {"hookEventName": "SessionStart",
+                                      "additionalContext": "\n".join(out)}}
+    state = f"{stale}/{worst}/{problems}/{int(outdated)}"
+    if remember(root, state):
+        payload["systemMessage"] = "\n".join(user)
+    json.dump(payload, sys.stdout, ensure_ascii=False)
     return 0
 
 

@@ -206,6 +206,13 @@ def main() -> int:
             f"session hook should name the drifted pages, not just count them:\n{h.stdout}"
         assert "commits behind" in h.stdout, f"and say how far behind:\n{h.stdout}"
         assert "/docs-sync" in h.stdout, "hook should name the command to run"
+        out = _json_mod.loads(h.stdout)
+        assert "behind the code" in out.get("systemMessage", "") and "/docs-sync" in out["systemMessage"], \
+            f"the user must see a line, not only the agent (plain SessionStart output is agent-only):\n{h.stdout}"
+        assert "[[overview]]" in out["hookSpecificOutput"]["additionalContext"], "the agent keeps the full list"
+        again = _json_mod.loads(hook(repo).stdout)
+        assert "systemMessage" not in again and "[[overview]]" in again["hookSpecificOutput"]["additionalContext"], \
+            "same state next session: nothing new for the user, the list still for the agent"
         h = hook(repo / "src")
         assert "[[overview]]" in h.stdout, \
             f"a session opened in a subfolder must still find the wiki at the repo root:\n{h.stdout}"
