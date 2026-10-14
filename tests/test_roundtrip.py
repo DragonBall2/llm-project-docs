@@ -19,7 +19,8 @@ silently get wrong:
                notices an outdated linter copy, and --lint-only re-copies just that
   commit hook  names the pages that describe a commit, including merges and other
                commits made without the word "commit"; names new files no page
-               covers; silent for docs-only, for an old HEAD, for edits to uncovered
+               covers; names pages edited without moving verified_at; silent for
+               docs commits that move it, for an old HEAD, for edits to uncovered
                files, and for repos without a wiki
   edit hook    shows a page's ⚠️ lines before the file it covers is edited;
                once per file per session; silent without traps or a wiki
@@ -229,11 +230,21 @@ def main() -> int:
         assert bash_call(repo, "git log --oneline -1 | grep commit") == "", \
             "nor by a later call that merely mentions commit"
 
-        # docs-only commit is not drift -> silent
+        # a docs commit that moves verified_at is silent; one that edits a body and
+        # leaves verified_at says so, because that is how pages read stale for weeks
         (repo / "docs" / "concepts" / "glossary.md").write_text(
             (repo / "docs" / "concepts" / "glossary.md").read_text(encoding="utf-8") + "\nnote\n",
             encoding="utf-8")
-        assert bash_call(repo, action=commit_all("docs: tweak")) == "", "docs-only commit must be silent"
+        ctx = bash_call(repo, action=commit_all("docs: tweak"))
+        assert "[[glossary]]" in ctx and "without moving `verified_at`" in ctx, \
+            f"a page edited without moving verified_at should be named:\n{ctx}"
+        assert "changed code that" not in ctx, "a docs-only commit changes no code"
+        gl = repo / "docs" / "concepts" / "glossary.md"
+        head = run("git", "rev-parse", "--short", "HEAD", cwd=repo).stdout.strip()
+        gl.write_text(re.sub(r"^verified_at: \S+", f"verified_at: {head}", gl.read_text(encoding="utf-8")
+                             + "\nchecked\n", flags=re.M), encoding="utf-8")
+        assert bash_call(repo, action=commit_all("docs: checked")) == "", \
+            "an edit that also moves verified_at is silent"
 
         # a new file no page covers -> named, so the wiki can grow
         (repo / "tools").mkdir()

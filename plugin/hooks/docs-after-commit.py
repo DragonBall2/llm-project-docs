@@ -108,6 +108,37 @@ def record(payload: dict) -> Path:
     return Path(tempfile.gettempdir()) / f"docs-head-{re.sub(r'[^A-Za-z0-9_-]', '', str(key))}"
 
 
+META = re.compile(r"(^|/)(index|log|CLAUDE)\.md$")
+
+
+def edited_unverified(root: Path, files: list[str]) -> list[str]:
+    """Pages this commit edited without moving `verified_at`.
+
+    In the author's own project, 67 of 92 commits that touched a page changed its
+    body and left `verified_at` alone, so the pages read as stale for weeks while
+    their prose was current. The moment the page was edited is the cheapest time
+    to say so. An edit that moved verified_at is not counted, and that covers a new
+    page too: its diff adds the verified_at line.
+    """
+    pages = [f for f in files if f.startswith("docs/") and f.endswith(".md")
+             and "/raw/" not in f and not META.search(f)]
+    if not pages:
+        return []
+    parent = "HEAD^1" if git(root, "rev-parse", "-q", "--verify", "HEAD^1") else None
+    if not parent:
+        return []
+    out = []
+    for f in pages:
+        diff = git(root, "-c", "core.quotepath=false", "diff", "--unified=0", parent, "HEAD", "--", f)
+        changed_lines = [l for l in diff.splitlines()
+                         if l[:1] in "+-" and not l.startswith(("+++", "---"))]
+        moved = any(re.match(r"^\+\s*verified_at:", l) for l in changed_lines)
+        body = any(not re.match(r"^[+-]\s*(verified_at|updated):", l) for l in changed_lines)
+        if body and not moved:
+            out.append(Path(f).stem)
+    return out
+
+
 def main() -> int:
     try:
         payload = json.load(sys.stdin)
@@ -151,7 +182,9 @@ def main() -> int:
     new = [f for f in changed(root, only_added=True)
            if f not in covered and not NOT_NEWS.search(f) and not pages_for(root, [f])]
 
-    if not hits and not new:
+    edited = edited_unverified(root, files)
+
+    if not hits and not new and not edited:
         return 0
 
     parts = []
@@ -168,8 +201,9 @@ def main() -> int:
               "  - a trap you hit while making this change and the page does not mention it "
               "-> add it as a `> ⚠️` paragraph; the pre-edit hook shows those, and it is "
               "the most valuable thing you can add\n"
-              "Do not move `verified_at` without actually checking; /docs-lint reports a "
-              "sha that moved with an untouched body as `unverified`.")
+              "Moving `verified_at` after you have read the page against the code is what "
+              "takes it off the stale list. Skip it and the page stays stale even when its "
+              "prose is right.")
     if new:
         parts.append(
             f"docs: commit {sha} added {len(new)} file(s) no page describes: "
@@ -177,6 +211,13 @@ def main() -> int:
             + "\nIf they add a feature, a subsystem or anything someone will need to find, "
               "give them a page or add them to an existing page's `sources`. If they are "
               "incidental, leave it.")
+    if edited:
+        parts.append(
+            f"docs: commit {sha} edited {len(edited)} page(s) without moving `verified_at`: "
+            + ", ".join(f"[[{n}]]" for n in edited[:6]) + (f" (+{len(edited) - 6})" if len(edited) > 6 else "")
+            + f"\nIf you read a page against the code it points at, move its `verified_at` to {sha}: "
+              "that is what takes it off the stale list. If you only added a fact without "
+              "re-reading the rest, leaving it is correct.")
     msg = "\n\n".join(parts)
 
     json.dump({"hookSpecificOutput": {

@@ -192,7 +192,16 @@ def commit_hook():
 
     write(r, "docs/subsystems/app.md", (r / "docs/subsystems/app.md").read_text() + "\nmore\n")
     ctx, ms, rc = bash(r, "git commit -am docs", commit_all(r, "docs only"))
-    record(A, "docs-only commit", ctx == "", "", ms, ctx)
+    record(A, "docs commit editing a body, verified_at left", "[[app]]" in ctx and "without moving" in ctx and "changed code" not in ctx,
+           "names the page; no code changed", ms, ctx)
+    head = git(r, "rev-parse", "--short", "HEAD").stdout.strip()
+    pth = r / "docs/subsystems/app.md"
+    pth.write_text(re.sub(r"^verified_at: \S+", f"verified_at: {head}", pth.read_text() + "\nchecked\n", flags=re.M))
+    ctx, ms, rc = bash(r, "git commit -am checked", commit_all(r, "docs checked"))
+    record(A, "docs commit that moves verified_at", ctx == "", "silent", ms, ctx)
+    page(r, "concepts", "brand-new", ["src/app.py"], "new page")
+    ctx, ms, rc = bash(r, "git add -A && git commit -m new", commit_all(r, "new page"))
+    record(A, "docs commit adding a new page", "brand-new" not in ctx, "a new page is created verified", ms, ctx)
 
     many = TMP / "c1"
     for i in range(120):
