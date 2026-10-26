@@ -218,8 +218,8 @@ change in context: what it tried, what broke, why the fix looks odd. Run `/docs-
 a week later and all of that has to be reconstructed from a diff — the *what* survives
 in git, the *why* does not.
 
-**At session start**, a second hook reports anything that drifted earlier and was never
-picked up. You get one line when the state has changed since you last saw it; the agent
+**At session start** (and again after `/compact` or `/clear`), a second hook reports
+anything that drifted earlier and was never picked up. You get one line when the state has changed since you last saw it; the agent
 gets the full list, furthest behind first:
 
 ```
@@ -243,6 +243,12 @@ If the trap no longer applies after your change, fix the page too.
 This is the reading side. A wiki full of "this bit us" notes is worth nothing if the
 page is not open when the code is touched, and usually it is not. Shown once per file per
 session; pages without a ⚠️ line say nothing here, the commit hook names them afterwards.
+
+**Sessions that run for days** never start again, so the Bash hook also watches: after 10
+code commits since the docs state was last reported, it says once how many pages are
+behind. And **a deploy or release moves no commit**, so a repository can name its release
+commands in `docs/CLAUDE.md` (`release-commands: fastlane|docker compose .* up`); when the
+agent runs one, it is told `/docs-sync` is due.
 
 ### All three stay quiet unless they have something specific to say
 

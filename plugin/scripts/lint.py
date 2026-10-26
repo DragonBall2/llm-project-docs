@@ -22,7 +22,7 @@ from pathlib import Path
 # Bumped when this file's behaviour changes. The SessionStart hook compares the copy
 # in a repository against the plugin's and says so when they differ; a translated
 # fork keeps the same number once it has the same logic.
-LINT_VERSION = "3"
+LINT_VERSION = "4"
 
 REQUIRED_FM = ("title", "type", "verified_at")
 META_PAGES = {"index", "log", "CLAUDE", "README"}
@@ -124,6 +124,7 @@ def main() -> int:
     ap.add_argument("--exclude", default=",".join(DEFAULT_EXCLUDE_DIRS),
                     help="subdirectories that are not wiki pages (comma separated)")
     ap.add_argument("--quiet", action="store_true", help="print the summary only")
+    ap.add_argument("--all", action="store_true", help="print every note, not the first 10")
     ap.add_argument("--json", action="store_true",
                     help="print counts as JSON and nothing else (for hooks and scripts)")
     args = ap.parse_args()
@@ -361,7 +362,11 @@ def main() -> int:
                 print(f"   ? {u}")
         if notes:
             print(f"\n{len(notes)} notes")
-            for n in notes[:10]:
+            shown = notes if args.all else notes[:10]
+            if len(notes) > len(shown):
+                # A session fixed the 10 it saw and another found more behind the cut.
+                print(f"   (first {len(shown)} of {len(notes)}; --all shows every one)")
+            for n in shown:
                 print(f"   · {n}")
 
     print()

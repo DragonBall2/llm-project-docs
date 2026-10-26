@@ -105,8 +105,12 @@ Existing files are left alone. **If the scaffold warns that `.claude/` is gitign
 the user the warning and the replacement lines it prints, and change `.gitignore` only if
 they say yes. Otherwise the linter and the `/docs-*` commands never reach teammates or CI.
 
-Afterwards fill in the two TODOs in `docs/CLAUDE.md`: the
-**"when you change code"** table and the **security** section.
+Afterwards fill in the TODOs in `docs/CLAUDE.md`: the **"when you change code"** table,
+the **security** section, and the **`release-commands:`** line. For the last one, look for
+how this project deploys or releases (Makefile or package.json scripts, `fastlane`,
+`docker compose ... up`, `eb deploy`, `npm publish`, a `scripts/deploy*`) and write those
+commands as one regular expression. Without it the plugin cannot tell when `/docs-sync` is
+due, because a deploy moves no commit. Leave it empty if there is no such command.
 
 The scaffold also copies the linter to `<repo>/.claude/scripts/docs-lint.py`, and the
 generated commands call it by that repo-relative path. Do not rewrite those calls to

@@ -211,6 +211,14 @@ change this definition, fix the pathspec in
 **Rhythm**: run `/docs-sync` right after a deploy or a release -- the moments when
 changes pile up. Do not wait to be asked.
 
+**Releases**: a deploy or a release moves no commit, so the plugin cannot see one unless
+the line below names it. Write the commands that deploy or release this project as one
+regular expression (for example `fastlane|docker compose .* up|npm publish`). When an
+agent runs a matching command, the commit hook says `/docs-sync` is due. Leave it empty if
+there are none.
+
+release-commands:
+
 ## Security
 
 **Never record secret values.** Variable names at most.
@@ -225,6 +233,10 @@ CMD_SYNC = """# /docs-sync -- reflect code changes into the docs wiki
 Follow **Workflow > /docs-sync** in `docs/CLAUDE.md`.
 
 ## Procedure
+
+> ⚠️ One syncer at a time, and pull first. Two sessions syncing at once both append
+> `docs/log.md` and edit `docs/index.md`, and the second one conflicts. In a multi-session
+> setup, let one session sync and the others wait.
 
 ### 1. Baseline
 

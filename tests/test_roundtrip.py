@@ -95,12 +95,13 @@ def bash_call(repo: Path, command: str = "git add -A && git commit -qm x && git 
     _calls[0] += 1
     base = {"cwd": str(repo), "tool_name": "Bash", "session_id": session,
             "tool_use_id": f"toolu_t{os.getpid()}_{_calls[0]}", "tool_input": {"command": command}}
-    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo,
+    env = {**os.environ, "CLAUDE_PLUGIN_DATA": str(DATA)}
+    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo, env=env,
                        input=_json_mod.dumps({**base, "hook_event_name": "PreToolUse"}))
     assert r.returncode == 0 and r.stdout.strip() == "", "the before-side records and says nothing"
     if action:
         action()
-    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo,
+    r = subprocess.run([sys.executable, str(COMMIT_HOOK)], capture_output=True, text=True, cwd=repo, env=env,
                        input=_json_mod.dumps({**base, "hook_event_name": "PostToolUse"}))
     assert r.returncode == 0, "commit hook must never fail a commit"
     if not r.stdout.strip():

@@ -139,43 +139,92 @@ def edited_unverified(root: Path, files: list[str]) -> list[str]:
     return out
 
 
-def main() -> int:
+DRIFT_COMMITS = 10  # code commits since the last notice before a long-lived session hears again
+CODE = [".", ":(exclude)docs", ":(exclude).claude", ":(exclude)CLAUDE.md"]
+
+
+def data_dir() -> Path:
+    d = os.environ.get("CLAUDE_PLUGIN_DATA")
+    return Path(d) if d else Path.home() / ".claude" / "plugins" / "data" / "llm-project-docs-llm-project-docs"
+
+
+def _key(root: Path) -> str:
+    import hashlib
+    return hashlib.sha256(str(root).encode("utf-8")).hexdigest()[:16]
+
+
+def mark(root: Path, head: str) -> None:
+    """Remember the HEAD at which this repository's docs state was last reported.
+
+    The session hook marks it too, so a long-lived session counts from its last
+    notice. Hashed path, like the plugin's other records.
+    """
+    f = data_dir() / "notice-head"
     try:
-        payload = json.load(sys.stdin)
+        seen = dict(l.split(" ", 1) for l in f.read_text(encoding="utf-8").splitlines() if " " in l) \
+            if f.exists() else {}
+        seen[_key(root)] = head
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text("".join(f"{k} {v}\n" for k, v in seen.items()), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def drift_due(root: Path, head: str) -> bool:
+    """True once DRIFT_COMMITS code commits have landed since the last mark.
+
+    Sessions in the field run for days and are compacted, never restarted, so the
+    session hook never ran again; the plugin was silent through a server deploy and
+    eight app releases. This rides on the Bash hook that already runs, so it costs
+    one `git rev-list --count` per call and works on turns started by another session.
+    """
+    f = data_dir() / "notice-head"
+    try:
+        seen = dict(l.split(" ", 1) for l in f.read_text(encoding="utf-8").splitlines() if " " in l) \
+            if f.exists() else {}
+    except Exception:
+        return False
+    last = seen.get(_key(root), "").strip()
+    if not last:
+        mark(root, head)  # first sight of this repository: start counting from here
+        return False
+    if last == head:
+        return False
+    n = git(root, "rev-list", "--count", f"{last}..{head}", "--", *CODE)
+    return n.isdigit() and int(n) >= DRIFT_COMMITS
+
+
+def stale_count(root: Path) -> int:
+    linter = root / ".claude" / "scripts" / "docs-lint.py"
+    try:
+        r = subprocess.run([sys.executable, str(linter), "--root", str(root), "--json"],
+                           capture_output=True, text=True, timeout=20)
+        return int(json.loads(r.stdout.strip().splitlines()[-1]).get("stale", 0))
     except Exception:
         return 0
 
-    cwd = Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
-    out = git(cwd, "rev-parse", "--show-toplevel", "HEAD").splitlines()
-    if len(out) < 2 or not re.fullmatch(r"[0-9a-f]{40}", out[1]):
-        return 0  # not a repository, or no commit yet
-    root, head = Path(out[0]), out[1]
-    if not (root / "docs").is_dir():
-        return 0
 
-    rec = record(payload)
-    if payload.get("hook_event_name") == "PreToolUse":
-        rec.write_text(f"{head} {int(time.time())}\n", encoding="utf-8")
-        return 0
+def release_pattern(root: Path):
+    """The repository's `release-commands:` line in docs/CLAUDE.md, compiled.
 
-    # PostToolUse: did this call move HEAD to a commit it made?
+    Deploys and releases move no HEAD (ssh and docker, fastlane and store APIs), yet
+    they are the moments the project ties /docs-sync to. The project names them.
+    """
     try:
-        before, started = rec.read_text(encoding="utf-8").split()
-        rec.unlink()
+        for line in (root / "docs" / "CLAUDE.md").read_text(encoding="utf-8").splitlines():
+            m = re.match(r"^release-commands:\s*(.+?)\s*$", line)
+            if m:
+                return re.compile(m.group(1))
     except Exception:
-        return 0  # no record of HEAD before the call: say nothing rather than guess
-    if head == before:
-        return 0
-    if PULL_RE.search((payload.get("tool_input") or {}).get("command") or ""):
-        return 0
-    ct = git(root, "log", "-1", "--format=%ct", "HEAD")
-    if not ct.isdigit() or int(ct) < int(started):
-        return 0  # HEAD moved to an existing commit: checkout, reset, fast-forward
-    sha = git(root, "rev-parse", "--short", "HEAD")
+        pass
+    return None
 
+
+def commit_parts(root: Path, sha: str) -> list[str]:
+    """What to tell the agent about a commit this call made."""
     files = changed(root)
     if not files:
-        return 0
+        return []
 
     hits = pages_for(root, files)
     covered = {f for _, fs in hits for f in fs}
@@ -185,7 +234,7 @@ def main() -> int:
     edited = edited_unverified(root, files)
 
     if not hits and not new and not edited:
-        return 0
+        return []
 
     parts = []
     if hits:
@@ -218,12 +267,69 @@ def main() -> int:
             + f"\nIf you read a page against the code it points at, move its `verified_at` to {sha}: "
               "that is what takes it off the stale list. If you only added a fact without "
               "re-reading the rest, leaving it is correct.")
-    msg = "\n\n".join(parts)
+    return parts
 
-    json.dump({"hookSpecificOutput": {
-        "hookEventName": "PostToolUse",
-        "additionalContext": msg,
-    }}, sys.stdout)
+
+
+def main() -> int:
+    try:
+        payload = json.load(sys.stdin)
+    except Exception:
+        return 0
+
+    cwd = Path(payload.get("cwd") or os.environ.get("CLAUDE_PROJECT_DIR") or ".").resolve()
+    out = git(cwd, "rev-parse", "--show-toplevel", "HEAD").splitlines()
+    if len(out) < 2 or not re.fullmatch(r"[0-9a-f]{40}", out[1]):
+        return 0  # not a repository, or no commit yet
+    root, head = Path(out[0]), out[1]
+    if not (root / "docs").is_dir():
+        return 0
+
+    rec = record(payload)
+    if payload.get("hook_event_name") == "PreToolUse":
+        rec.write_text(f"{head} {int(time.time())}\n", encoding="utf-8")
+        return 0
+
+    cmd = (payload.get("tool_input") or {}).get("command") or ""
+    parts: list[str] = []   # for the agent
+    user: list[str] = []    # for the person
+
+    # 1. Did this call move HEAD to a commit it made?
+    try:
+        before, started = rec.read_text(encoding="utf-8").split()
+        rec.unlink()
+    except Exception:
+        before = started = None  # no record of HEAD before the call: do not guess
+    if before and head != before and not PULL_RE.search(cmd):
+        ct = git(root, "log", "-1", "--format=%ct", "HEAD")
+        if ct.isdigit() and int(ct) >= int(started):  # else: checkout, reset, fast-forward
+            parts += commit_parts(root, git(root, "rev-parse", "--short", "HEAD"))
+
+    # 2. A release or deploy: no HEAD moves, but it is exactly when /docs-sync is due.
+    rel = release_pattern(root)
+    if rel and rel.search(cmd):
+        parts.append(f"docs: `{cmd[:80]}` matches release-commands in docs/CLAUDE.md, so a "
+                     "release or deploy just ran. This is when /docs-sync is due: it reads "
+                     "only the code that changed since each page was checked.")
+        user.append("docs: a release or deploy just ran. /docs-sync brings the docs in line with it.")
+        mark(root, head)
+    # 3. Long-lived sessions: many code commits since the docs were last looked at.
+    elif drift_due(root, head):
+        stale = stale_count(root)
+        mark(root, head)
+        if stale:
+            parts.append(f"docs: {DRIFT_COMMITS}+ code commits have landed since the docs were last "
+                         f"checked in this repository, and {stale} page(s) are now behind. "
+                         "/docs-sync brings them up to date.")
+            user.append(f"docs: {stale} page(s) are behind the code. /docs-sync brings them up to date.")
+
+    if not parts:
+        return 0
+    out = {"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                  "additionalContext": "\n\n".join(parts)}}
+    if user:
+        out["systemMessage"] = "\n".join(user)
+    json.dump(out, sys.stdout, ensure_ascii=False)
     return 0
 
 

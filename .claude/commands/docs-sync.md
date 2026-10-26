@@ -4,6 +4,10 @@ Follow **Workflow > /docs-sync** in `docs/CLAUDE.md`.
 
 ## Procedure
 
+> ⚠️ One syncer at a time, and pull first. Two sessions syncing at once both append
+> `docs/log.md` and edit `docs/index.md`, and the second one conflicts. In a multi-session
+> setup, let one session sync and the others wait.
+
 ### 1. Baseline
 
 The **oldest** `verified_at` sha across `docs/**/*.md` frontmatter.

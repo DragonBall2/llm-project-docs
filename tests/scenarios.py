@@ -26,6 +26,7 @@ DATA = TMP / "_data"
 GENV = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
 results: list[dict] = []
+LAST_USER = [""]
 _n = [0]
 
 
@@ -58,8 +59,11 @@ def bash(repo, command, action=None, session="s", cwd=None):
         action()
     r2, ms2 = hook(H_COMMIT, {**base, "hook_event_name": "PostToolUse"})
     ctx = ""
+    LAST_USER[0] = ""
     if r2.stdout.strip():
-        ctx = json.loads(r2.stdout)["hookSpecificOutput"]["additionalContext"]
+        d = json.loads(r2.stdout)
+        ctx = d["hookSpecificOutput"]["additionalContext"]
+        LAST_USER[0] = d.get("systemMessage", "")
     return ctx, ms1 + ms2, max(r1.returncode, r2.returncode)
 
 
@@ -267,6 +271,51 @@ def commit_hook():
     bad.unlink(); git(r, "add", "-A"); git(r, "commit", "-qm", "rm broken")
 
 
+# ------------------------------------------------- release and long-session drift ---
+def release_and_drift():
+    A = "mid-session"
+    hooks = json.loads((PLUGIN / "hooks/hooks.json").read_text())
+    m = hooks["hooks"]["SessionStart"][0]["matcher"].split("|")
+    record(A, "SessionStart also on compact and clear", {"compact", "clear"} <= set(m),
+           "long-lived sessions are compacted, not restarted", None, "|".join(m))
+
+    r = new_repo("m-rel")
+    c = r / "docs" / "CLAUDE.md"
+    c.write_text(c.read_text().replace("release-commands:\n", "release-commands: fastlane|docker compose .* up\n"))
+    page(r, "subsystems", "app", ["src/app.py"], "App.")
+    git(r, "add", "-A"); git(r, "commit", "-qm", "pages")
+    ctx, ms, rc = bash(r, "cd ios && bundle exec fastlane beta")
+    record(A, "declared release command ran", "/docs-sync is due" in ctx and "release or deploy" in LAST_USER[0],
+           "no commit moved; agent and user both told", ms, ctx)
+    ctx, ms, rc = bash(r, "docker compose -f prod.yml up -d")
+    record(A, "second declared pattern", "/docs-sync is due" in ctx, "", ms, ctx)
+    ctx, ms, rc = bash(r, "docker compose ps")
+    record(A, "similar but undeclared command", ctx == "", "", ms, ctx)
+    plain = new_repo("m-norel")
+    ctx, ms, rc = bash(plain, "bundle exec fastlane beta")
+    record(A, "release-commands left empty", ctx == "", "nothing declared, nothing said", ms, ctx)
+
+    d = new_repo("m-drift")
+    page(d, "subsystems", "app", ["src/app.py"], "App.")
+    git(d, "add", "-A"); git(d, "commit", "-qm", "pages")
+    ctx, ms, rc = bash(d, "ls")
+    record(A, "first sight of a repository", ctx == "", "starts counting, says nothing", ms, ctx)
+    for i in range(9):
+        write(d, "src/app.py", f"x = {i}\n"); git(d, "commit", "-qam", f"terminal {i}")
+    ctx, ms, rc = bash(d, "git status")
+    record(A, "9 code commits since the last mark", ctx == "", "below the threshold", ms, ctx)
+    write(d, "src/app.py", "x = 99\n"); git(d, "commit", "-qam", "terminal 10")
+    ctx, ms, rc = bash(d, "git status")
+    record(A, "10 code commits since the last mark", "page(s) are now behind" in ctx and "/docs-sync" in LAST_USER[0],
+           "a long-lived session hears it without a restart", ms, ctx)
+    ctx, ms, rc = bash(d, "git status")
+    record(A, "the next call", ctx == "", "said once, then counts again", ms, ctx)
+    for i in range(12):
+        write(d, f"docs/subsystems/n{i}.md", f"note {i}\n"); git(d, "add", "-A"); git(d, "commit", "-qm", f"docs {i}")
+    ctx, ms, rc = bash(d, "git status")
+    record(A, "12 docs-only commits", ctx == "", "only code commits count", ms, ctx)
+
+
 # ------------------------------------------------------------------ edit hook ---
 def edit_hook():
     A = "edit hook"
@@ -397,6 +446,14 @@ def scaffold_lint():
     t = time.perf_counter(); res = sh(hist, sys.executable, ".claude/scripts/docs-lint.py", "--root", ".", "--json", check=False); ms = (time.perf_counter() - t) * 1000
     record(A, "2,000-commit history: lint latency", '"stale": 1' in res.stdout, "SessionStart budget is 30 s", ms)
 
+    many = new_repo("l-notes")
+    page(many, "subsystems", "cites", [], "\n".join(f"See `gone/f{i}.py`." for i in range(13)))
+    git(many, "add", "-A"); git(many, "commit", "-qm", "p")
+    res = sh(many, sys.executable, ".claude/scripts/docs-lint.py", "--root", ".", check=False)
+    resall = sh(many, sys.executable, ".claude/scripts/docs-lint.py", "--root", ".", "--all", check=False)
+    record(A, "more than 10 notes", "first 10 of 13" in res.stdout and resall.stdout.count("cited file not found") == 13,
+           "says how many are hidden; --all shows them", None, res.stdout)
+
     sq = new_repo("l-squash")
     page(sq, "subsystems", "app", ["src/app.py"], "App.", sha="deadbee")
     git(sq, "add", "-A"); git(sq, "commit", "-qm", "p")
@@ -405,7 +462,7 @@ def scaffold_lint():
 
 
 def main():
-    for fn in (commit_hook, edit_hook, session_hook, scaffold_lint):
+    for fn in (commit_hook, release_and_drift, edit_hook, session_hook, scaffold_lint):
         try:
             fn()
         except Exception as e:

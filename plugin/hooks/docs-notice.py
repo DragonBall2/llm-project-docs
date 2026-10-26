@@ -174,6 +174,19 @@ def main() -> int:
         if not outdated:
             return 0
 
+    try:  # the commit hook counts code commits from the last report; this is one
+        import importlib.util
+        spec = importlib.util.spec_from_file_location(
+            "docs_after_commit", Path(__file__).with_name("docs-after-commit.py"))
+        ac = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(ac)
+        h = subprocess.run(["git", "-C", str(root), "rev-parse", "HEAD"],
+                           capture_output=True, text=True, timeout=10).stdout.strip()
+        if h:
+            ac.mark(root, h)
+    except Exception:
+        pass
+
     pages = counts.get("stale_pages") or []
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
