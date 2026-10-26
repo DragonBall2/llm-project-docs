@@ -2,10 +2,10 @@
 title: lint.py: two history walks and the traps around them
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-06
+updated: 2026-10-26
 sources:
   - code: plugin/scripts/lint.py
-verified_at: 3732bf0
+verified_at: dc78a11
 ---
 
 # lint.py
@@ -67,7 +67,9 @@ way.
 Human text by default, `--json` for hooks: counts only plus `stale_pages`, so a hook never
 parses prose and a translated copy of the script still emits the same keys. Exit 1 only on
 problems. `--json` also carries `problem_list`, the first five problem lines, so the
-session hook can say what is wrong.
+session hook can say what is wrong. The text output used to stop at 10 notes without
+saying so; a session fixed the 10 it saw and another found more. It now says how many
+are hidden, and `--all` shows them (`LINT_VERSION` 4).
 
 ## The Korean fork
 

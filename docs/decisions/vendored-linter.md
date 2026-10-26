@@ -6,7 +6,7 @@ updated: 2026-10-06
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 8eab999
+verified_at: dc78a11
 ---
 
 # Decision: vendor the linter

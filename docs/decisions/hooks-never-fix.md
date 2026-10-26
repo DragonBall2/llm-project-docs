@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-10-14
+updated: 2026-10-26
 sources:
   - code: plugin/hooks/
-verified_at: 6a1d9d4
+verified_at: dc78a11
 ---
 
 # Decision: hooks point, they do not fix
@@ -41,6 +41,11 @@ covers them. Silence there meant the wiki could be corrected but never grow.
 So is the mention of pages edited without moving `verified_at` (1.9.0): once per commit,
 only for those pages. Silence there let a whole wiki read stale while its prose was
 current, which is the noise this rule exists to prevent, arrived at the other way.
+
+The 1.11.0 checks follow the same shape: a declared release command, said once per
+run; 10 code commits since the last report, said once and then counted again. Both
+speak only when there is something to do, which is the point of the rule, and both stay
+silent in a repository that declares nothing or is up to date.
 
 ## 3. Every path exits 0
 

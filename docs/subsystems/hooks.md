@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-14
+updated: 2026-10-26
 sources:
   - code: plugin/hooks/
-verified_at: 6a1d9d4
+verified_at: dc78a11
 ---
 
 # Hooks
@@ -49,6 +49,20 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 > user never saw it, and `/docs-sync`, which the user runs, was never run. Now the user
 > gets one line as `systemMessage` when the state changed since it was last shown, and the
 > agent gets the full list as `additionalContext` every session.
+
+- Since 1.11.0 the session hook also runs on `compact` and `clear`. Sessions in the field
+  ran for days, compacted and never restarted, and never heard it again
+- The Bash hook adds two checks after every call, both said to the user and the agent:
+  a command matching the repository's `release-commands:` line (a deploy moves no
+  commit, yet it is when `/docs-sync` is due), and 10 code commits since the docs state was
+  last reported (`notice-head` in `CLAUDE_PLUGIN_DATA`, marked by both hooks). It rides on
+  the Bash hook rather than UserPromptSubmit: no extra process, and it works on turns that
+  another session started
+
+> ⚠️ Plugin behaviour that lives in a long-lived session needs a trigger inside the
+> session. gwiroman had one server deploy and eight app releases in three days with no
+> `/docs-sync`; every hook worked as designed and none spoke at the moment that mattered.
+> The field report is in `docs/raw/2026-10-26_gwiroman-field-report.md`.
 
 - The session hook names up to three problems from the linter's `problem_list` instead of
   only counting them, and gives no setup hint where a doc-site generator owns `docs/`

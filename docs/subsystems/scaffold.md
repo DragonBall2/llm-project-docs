@@ -2,11 +2,11 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-06
+updated: 2026-10-26
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 8eab999
+verified_at: dc78a11
 ---
 
 # scaffold.py
@@ -81,6 +81,12 @@ location.
 - The scaffold always works at the repository root, even when called from a subfolder:
   the hooks look nowhere else
 - A scaffolded but never-filled wiki continues from Step 3 instead of being re-scaffolded
+- Setup fills `release-commands:` in the contract from how the project deploys (Makefile,
+  package.json, fastlane, docker compose, `scripts/deploy*`), so the Bash hook can tell
+  when `/docs-sync` is due
+- The generated `/docs-sync` warns: one syncer at a time, pull first. Two sessions
+  syncing together both append `log.md` and edit `index.md`. Existing repositories keep
+  their old command file; only the linter has a re-copy path
 
 ## Repositories it refuses or warns about
 

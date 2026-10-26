@@ -190,3 +190,14 @@ hint had always used `systemMessage` and was visible; the stale notice never was
 question "why did you never run /docs-sync after 20 notices" had a wrong premise: the
 user saw none of them. 1.10.0 (`6a1d9d4`) shows the user one line when the state changes
 and keeps the full list for the agent. See [[hooks]].
+
+## [2026-10-26] 1.11.0 | the field report: long-lived sessions and releases
+
+A gwiroman overseer session reported three days with one server deploy and eight app
+releases and no `/docs-sync`; afterwards about 30 pages needed syncing, three server
+pages ~100 commits behind. The plugin worked as designed and never spoke at the moments
+that mattered (`docs/raw/2026-10-26_gwiroman-field-report.md`). 1.11.0 (`dc78a11`):
+SessionStart on compact and clear; the Bash hook says when 10 code commits pile up and
+when a declared `release-commands` command runs; `/docs-sync` warns about concurrent
+syncs; the linter no longer hides notes past 10. Open from the report: pages that describe
+a released version rather than HEAD, and branch-only features. See [[hooks]].

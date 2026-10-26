@@ -131,6 +131,15 @@ change this definition, fix the pathspec in
 **Rhythm**: run `/docs-sync` right after a deploy or a release -- the moments when
 changes pile up. Do not wait to be asked.
 
+**Releases**: a deploy or a release moves no commit, so the plugin cannot see one unless
+the line below names it. Write the commands that deploy or release this project as one
+regular expression (for example `fastlane|docker compose .* up|npm publish`). When an
+agent runs a matching command, the commit hook says `/docs-sync` is due. Leave it empty if
+there are none. (This repository releases by pushing to `main`; the push itself is the
+release, so nothing is listed.)
+
+release-commands:
+
 ## Security
 
 **Never record secret values.** Variable names at most.
