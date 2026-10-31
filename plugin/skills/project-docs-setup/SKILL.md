@@ -1,7 +1,7 @@
 ---
 name: project-docs-setup
 description: Turn a repository's docs/ into a wiki an LLM maintains — categories by access pattern, per-page verified_at to track drift from the code, and the /docs-sync, /docs-lint, /docs-query, /docs-status commands. Splits an existing flat document (SPEC.md, a long README) into pages, or seeds from the code when there is no documentation yet. Use when someone says "set up docs for this project", "turn our docs into a wiki", "let Claude maintain the documentation", or a single document has grown too big to read. For a wiki that spans several repositories, use llm-wiki-setup instead.
-argument-hint: "[path] [--lang <language>] [--categories a,b,c] [--lint-only]"
+argument-hint: "[path] [--lite] [--complete] [--lang <language>] [--categories a,b,c] [--lint-only]"
 ---
 
 # project-docs-setup
@@ -19,6 +19,10 @@ changed.
 > you stop early (no git, a doc site, no shell), say why and how to proceed instead.
 
 Turn the repository's `docs/` into an LLM-maintained wiki. Arguments: $ARGUMENTS
+
+**Which path.** `--lite` in the arguments: Step 0's stops, then **Lite**. `--complete`:
+**Complete**. Neither, and the repository already has `docs/CLAUDE.md`: Step 0's rerun
+table. Otherwise: the full setup, Steps 0 to 6.
 
 The procedure comes first; the principles behind it (access-pattern categories,
 `verified_at`, the code exclude list) are under **Background** at the end.
@@ -58,11 +62,54 @@ tear them apart. Rerunning means one of these, and each has its own answer:
 | `--lint-only` in the arguments, or the session hook said the linter copy is old | `python3 "$SCAFFOLD" --root <repo> --lint-only`, then stop |
 | a new category | create the directory, add its section to `docs/index.md`, and its row to the category table in `docs/CLAUDE.md`. Nothing else |
 | the wiki was scaffolded but never filled (no page files, `docs/index.md` still has its TODO comments) | continue from **Step 3** below; the scaffold is done |
-| nothing specific | run `/docs-status` and report it. Ask only if the user's intent is still unclear |
+| `--complete` in the arguments, or the wiki says `docs-mode: grow` and the user wants the whole picture | **Complete** (below) |
+| nothing specific | run `python3 "$SCAFFOLD" --root <repo> --uncovered`. If it lists uncovered code, say how much and where in one or two lines and offer to **Complete**; do it only on yes. Otherwise run `/docs-status` and report it |
 
-Everything below this line is for a repository that does not have the wiki yet.
+### Complete: fill the gaps, keep what is there
 
-Two paths:
+A wiki that grew while people worked covers the areas they worked in, with what they
+learned there. Completing it reads only what no page covers yet.
+
+1. `python3 "$SCAFFOLD" --root <repo> --uncovered` lists the code no page's `sources`
+   cover, grouped by directory. That list is the scope. Nothing outside it is read.
+2. **Do not edit, split or rewrite an existing page.** They carry context the code does
+   not: why a change was made, the traps someone hit. If one is wrong, that is
+   `/docs-sync`'s job, not this one. Adding a `[[link]]` to a new page is the only change
+   allowed to them.
+3. Write pages for the uncovered areas, following Step 3-B and the page format in
+   `docs/CLAUDE.md`: real `sources`, traps as `> ⚠️` paragraphs. Group small directories
+   into one page; skip generated or platform-boilerplate code (it is listed so you can
+   decide, not so you document it).
+4. Update `docs/index.md` and its reading order. Change `docs-mode: grow` in
+   `docs/CLAUDE.md` to `docs-mode: complete`, keeping the rest of that section.
+5. Lint, then the **Final report**: how many pages were added, which areas, how much
+   remains uncovered and why (generated code, boilerplate).
+
+Everything below this line, apart from **Lite**, is for a repository that does not have
+the wiki yet.
+
+### Lite: start small, grow while working (`--lite`)
+
+Used when the user said yes to starting a wiki that grows as you work, usually offered
+at the agent's first commit in a repository. The point is that it costs seconds, so
+nobody has to decide to spend an afternoon on documentation.
+
+1. Step 0's stops still apply: no git, a docs site, an existing wiki.
+2. `python3 "$SCAFFOLD" --root <repo> --name "<project>" --lang <language> --grow`.
+   The `--grow` flag adds the "grows as you work" section and `docs-mode: grow` to the
+   contract. Do not design categories; the defaults are fine and empty ones cost nothing.
+3. Write **one** page, at most two: the area of the code you were just working in (or, if
+   nothing yet, the entry point). Read only those files. Real `sources`, traps as
+   `> ⚠️`. Do not survey the rest of the codebase.
+4. Put the page in `docs/index.md`, a one-line entry in `docs/log.md` ("started in grow
+   mode"), and set `verified_at` to the current HEAD.
+5. Fill the `release-commands:` line only if the deploy command is obvious at a glance;
+   otherwise leave it.
+6. Report in three or four lines: what was created, that pages will be added as work
+   touches new areas, that `/project-docs-setup` later fills the rest. End with the
+   commit question and the issues line, as in **Final report**.
+
+Two paths for a full setup:
 
 | Situation | Approach |
 |---|---|
@@ -97,7 +144,9 @@ are not translated.
 ## Step 2: scaffold
 
 ```bash
-SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | sort -V | tail -1)
+# The scaffold ships next to this skill: <base directory of this skill>/../../scripts/
+# (the base directory is printed when the skill loads). Use that one, not a search.
+SCAFFOLD="<base directory of this skill>/../../scripts/scaffold.py"
 python3 "$SCAFFOLD" --root <repo> --name "<project>" --lang <language> [--categories a,b,c] [--exclude docs,.claude,CLAUDE.md]
 ```
 
@@ -370,10 +419,18 @@ categories and filling in content is the LLM's job.
 > plugin-cache install and a manual one. That is why the linter is vendored and called by
 > a repo-relative path.
 
-To locate `scaffold.py` regardless of how this plugin was installed:
+`scaffold.py` is in this plugin's `scripts/` folder, two levels up from this skill's
+base directory, which is printed when the skill loads.
+
+> ⚠️ Do not `find` it under `~/.claude/plugins`. That also finds the marketplace's git
+> clone and older cached versions, and `sort -V | tail -1` over full paths picks
+> `marketplaces/...` over `cache/...`, an older script that may lack `--grow` or
+> `--uncovered`. Two end-to-end setups hit exactly that.
 
 ```bash
-SCAFFOLD=$(find ~/.claude/plugins ~/.claude/skills -name scaffold.py -path '*project-docs*' 2>/dev/null | sort -V | tail -1)
+# The scaffold ships next to this skill: <base directory of this skill>/../../scripts/
+# (the base directory is printed when the skill loads). Use that one, not a search.
+SCAFFOLD="<base directory of this skill>/../../scripts/scaffold.py"
 python3 "$SCAFFOLD" --root . --name MyApp
 ```
 

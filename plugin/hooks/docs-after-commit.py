@@ -220,6 +220,52 @@ def release_pattern(root: Path):
     return None
 
 
+OFFER = ("docs: this repository has no docs wiki. Once, at the end of your reply, ask the user "
+         "in one line whether to start one that grows as you work: a skeleton now (seconds; "
+         "files under docs/ and .claude/, nothing committed without asking), then a short page "
+         "for each area you work in, with the traps you hit. If they say yes, run "
+         "/project-docs-setup --lite. If not, drop it; this is not offered again here.")
+MIN_TRACKED = 5
+
+
+def offer_due(root: Path) -> bool:
+    """Offer a growing wiki once per repository, at the first commit the agent makes.
+
+    Installs did not turn into setups: 22 setups from 1,206 installers, none for 17
+    days after a one-time line at session start. The first commit is when the agent
+    has just changed code and the docs would have something to say, so the agent asks
+    the person there. It asks; it never sets anything up by itself. Not where a docs
+    site owns docs/ (setup refuses that), not in a repository with almost no files.
+    """
+    import importlib.util
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "scaffold", Path(__file__).resolve().parent.parent / "scripts" / "scaffold.py")
+        sc = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sc)
+        if any((root / m).exists() for m in sc.DOC_SITE_MARKERS):
+            return False
+    except Exception:
+        return False
+    f = data_dir() / "offer-asked"
+    key = _key(root)
+    try:
+        asked = f.read_text(encoding="utf-8").split() if f.exists() else []
+        if key in asked:
+            return False
+        if git(root, "ls-files").count("\n") + 1 < MIN_TRACKED:
+            return False
+        f.parent.mkdir(parents=True, exist_ok=True)
+        with f.open("a", encoding="utf-8") as fh:
+            fh.write(key + "\n")
+    except Exception:
+        return False  # cannot record: do not risk asking every commit
+    return True
+
+
+GROW_RE = re.compile(r"^docs-mode:\s*grow\s*$", re.M)
+
+
 def commit_parts(root: Path, sha: str) -> list[str]:
     """What to tell the agent about a commit this call made."""
     files = changed(root)
@@ -233,7 +279,9 @@ def commit_parts(root: Path, sha: str) -> list[str]:
 
     edited = edited_unverified(root, files)
 
-    if not hits and not new and not edited:
+    if not hits and not new and not edited and not GROW_RE.search(
+            (root / "docs" / "CLAUDE.md").read_text(encoding="utf-8", errors="replace")
+            if (root / "docs" / "CLAUDE.md").exists() else ""):
         return []
 
     parts = []
@@ -253,6 +301,22 @@ def commit_parts(root: Path, sha: str) -> list[str]:
               "Moving `verified_at` after you have read the page against the code is what "
               "takes it off the stale list. Skip it and the page stays stale even when its "
               "prose is right.")
+    grow = False
+    try:
+        grow = bool(GROW_RE.search((root / "docs" / "CLAUDE.md").read_text(encoding="utf-8")))
+    except Exception:
+        pass
+    if grow:
+        bare = [f for f in files if f not in covered and not NOT_NEWS.search(f)
+                and not pages_for(root, [f])]
+        if bare:
+            parts.append(
+                f"docs: commit {sha} touched {len(bare)} file(s) no page covers yet: "
+                + ", ".join(f[:70] for f in bare[:5]) + (f" (+{len(bare) - 5})" if len(bare) > 5 else "")
+                + "\nThis wiki grows as you work: when this task is done, add a short page for "
+                  "what you learned there, or extend the nearest page, with any traps as "
+                  "`> ⚠️` paragraphs and `sources` pointing at these files.")
+        new = []  # covered by the line above
     if new:
         parts.append(
             f"docs: commit {sha} added {len(new)} file(s) no page describes: "
@@ -282,8 +346,7 @@ def main() -> int:
     if len(out) < 2 or not re.fullmatch(r"[0-9a-f]{40}", out[1]):
         return 0  # not a repository, or no commit yet
     root, head = Path(out[0]), out[1]
-    if not (root / "docs").is_dir():
-        return 0
+    wiki = (root / "docs" / "CLAUDE.md").exists()
 
     rec = record(payload)
     if payload.get("hook_event_name") == "PreToolUse":
@@ -293,6 +356,7 @@ def main() -> int:
     cmd = (payload.get("tool_input") or {}).get("command") or ""
     parts: list[str] = []   # for the agent
     user: list[str] = []    # for the person
+    made = False
 
     # 1. Did this call move HEAD to a commit it made?
     try:
@@ -303,7 +367,16 @@ def main() -> int:
     if before and head != before and not PULL_RE.search(cmd):
         ct = git(root, "log", "-1", "--format=%ct", "HEAD")
         if ct.isdigit() and int(ct) >= int(started):  # else: checkout, reset, fast-forward
-            parts += commit_parts(root, git(root, "rev-parse", "--short", "HEAD"))
+            made = True
+            if wiki:
+                parts += commit_parts(root, git(root, "rev-parse", "--short", "HEAD"))
+            elif offer_due(root):
+                parts.append(OFFER)
+    if not wiki:
+        if parts:
+            json.dump({"hookSpecificOutput": {"hookEventName": "PostToolUse",
+                                              "additionalContext": parts[0]}}, sys.stdout)
+        return 0
 
     # 2. A release or deploy: no HEAD moves, but it is exactly when /docs-sync is due.
     rel = release_pattern(root)

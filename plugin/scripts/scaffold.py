@@ -62,6 +62,23 @@ GITIGNORE_KEEP = """.claude/*
 .claude/commands/*
 !.claude/commands/docs-*.md"""
 
+GROW_SECTION = """
+## This wiki grows as you work
+
+docs-mode: grow
+
+It was started small: a skeleton and a page or two. It is filled in where work happens,
+not all at once.
+
+- **When you finish work in an area no page covers, add a page for it, or extend the
+  nearest page.** What the code does, why it is that way, and every trap you hit as a
+  `> ⚠️` paragraph, with `sources` pointing at the files you worked in. Keep it short;
+  it will grow. The commit hook names files a commit touched that no page covers yet.
+- **Do not document areas you did not work in.** That is what `/project-docs-setup`
+  does later, when someone wants the whole picture: it fills the uncovered areas and
+  leaves the pages written here alone.
+"""
+
 # Where the vendored linter lands inside the target repo.
 LINT_REL = ".claude/scripts/docs-lint.py"
 
@@ -491,6 +508,59 @@ Empty. That is normal.
 """
 
 
+NOT_CODE = ("test", "tests", "__tests__", "spec", "docs", ".claude", ".github")
+BUILD_FILES = {"Makefile", "Dockerfile", "Procfile", "Justfile", "Rakefile", "Gemfile"}
+# Wider than the linter's citation list: this decides what deserves a page.
+SOURCE_EXT = ("py|pyi|ts|tsx|js|jsx|mjs|cjs|go|rs|java|kt|kts|scala|rb|php|sh|bash|sql|"
+              "dart|swift|m|mm|c|h|cc|cpp|hpp|cs|fs|ex|exs|erl|clj|lua|r|jl|vue|svelte|"
+              "html|css|scss|tf|proto|graphql|yml|yaml|toml|ini|service")
+# Third-party or generated code someone committed; nobody writes pages about it.
+VENDORED = {"vendor", "node_modules", "third_party", "third-party", "Pods", "build", "dist",
+            "generated", ".dart_tool", "site-packages", "bower_components"}
+
+
+def print_uncovered(root: Path, docs: Path, excludes: list[str]) -> int:
+    """Tracked code files no page's `code:` sources cover, grouped by directory.
+
+    The completion path of the setup reads this to know where pages are missing,
+    so it fills only the gaps and leaves the pages written while working alone.
+    """
+    import importlib.util
+    import re
+    import subprocess
+    spec = importlib.util.spec_from_file_location("lint", Path(__file__).with_name("lint.py"))
+    lint = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(lint)
+    srcs = []
+    for p in docs.rglob("*.md"):
+        fm = lint.frontmatter(p.read_text(encoding="utf-8", errors="replace"))
+        if fm:
+            srcs += [s.rstrip("/") for s in lint.code_sources(fm)]
+    files = subprocess.run(["git", "-C", str(root), "-c", "core.quotepath=false", "ls-files"],
+                           capture_output=True, text=True).stdout.splitlines()
+    ex = {e.rstrip("/") for e in excludes}
+    out: dict[str, list[str]] = {}
+    total = 0
+    for f in files:
+        parts = f.split("/")
+        if parts[0] in ex or f in ex or any(x in NOT_CODE or x in VENDORED or x.startswith(".") for x in parts[:-1]) \
+                or parts[-1].startswith(".") or re.search(r"(^|/)(test_[^/]*|[^/]*[._](test|spec)\.[^/]+)$", f):
+            continue
+        if not (re.search(rf"\.({SOURCE_EXT})$", f) or parts[-1] in BUILD_FILES):
+            continue  # docs, images, licences: not code a page would describe
+        total += 1
+        if any(f == s or f.startswith(s + "/") for s in srcs):
+            continue
+        out.setdefault("/".join(parts[:2]) if len(parts) > 2 else (parts[0] if len(parts) > 1 else "."), []).append(f)
+    n = sum(len(v) for v in out.values())
+    print(f"{n} of {total} code files are covered by no page")
+    for d, fs in sorted(out.items(), key=lambda x: -len(x[1]))[:25]:
+        print(f"  {d}/  {len(fs)} file(s): " + ", ".join(Path(f).name for f in fs[:4]) + (" ..." if len(fs) > 4 else ""))
+    if len(out) > 25:
+        print(f"  ... and {len(out) - 25} more directories")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -506,6 +576,10 @@ def main() -> int:
                     help="language the pages are written in, recorded in docs/CLAUDE.md "
                          "(the setup procedure infers it; this only fills the blank)")
     ap.add_argument("--force", action="store_true", help="overwrite existing files")
+    ap.add_argument("--grow", action="store_true",
+                    help="start small: mark the wiki as growing as you work (docs-mode: grow)")
+    ap.add_argument("--uncovered", action="store_true",
+                    help="print tracked code files no page's sources cover, by directory, and exit")
     ap.add_argument("--lint-only", action="store_true",
                     help="only re-copy the linter into an already scaffolded repo")
     ap.add_argument("--dry-run", action="store_true")
@@ -526,6 +600,8 @@ def main() -> int:
     name = args.name or root.name
     docs = root / args.docs_dir
     excludes = [e.strip() for e in args.exclude.split(",") if e.strip()]
+    if args.uncovered:
+        return print_uncovered(root, docs, excludes)
 
     if args.categories:
         cats = [(c.strip(), "", "Exploratory") for c in args.categories.split(",") if c.strip()]
@@ -565,7 +641,7 @@ def main() -> int:
     )
 
     files: dict[Path, str] = {
-        docs / "CLAUDE.md": claude_md(name, cats, excludes, args.lang),
+        docs / "CLAUDE.md": claude_md(name, cats, excludes, args.lang) + (GROW_SECTION if args.grow else ""),
         docs / "index.md": INDEX_TMPL.format(name=name, sections=sections),
         docs / "log.md": LOG_TMPL.format(today=date.today().isoformat(),
                                          cats=" - ".join(c[0] for c in cats), sha=sha,

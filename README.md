@@ -21,8 +21,13 @@ Requires Claude Code, git, and Python 3.10+ available as `python3`. Nothing else
 ```
 /plugin marketplace add DragonBall2/llm-project-docs
 /plugin install llm-project-docs@llm-project-docs
-/project-docs-setup
+/project-docs-setup            # build the whole wiki now
+/project-docs-setup --lite     # or start in seconds and let it grow as you work
 ```
+
+If you do neither, the first time the agent commits in a repository without a wiki it
+asks you once whether to start one that grows as you work. Later, `/project-docs-setup`
+fills only what no page covers yet and leaves the pages written while working alone.
 
 Then, in the repository you just set up:
 

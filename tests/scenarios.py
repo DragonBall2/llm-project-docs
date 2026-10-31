@@ -316,6 +316,50 @@ def release_and_drift():
     record(A, "12 docs-only commits", ctx == "", "only code commits count", ms, ctx)
 
 
+# ------------------------------------------- grow: offer, grow mode, complete ---
+def grow_mode():
+    A = "grow mode"
+    r = new_repo("g-offer", scaffold=False)
+    ctx, ms, rc = bash(r, "git commit -am x", lambda: (write(r, "src/app.py", "x = 2\n"), git(r, "commit", "-qam", "first")))
+    record(A, "first agent commit in a repo with no wiki", "ask the user" in ctx and "/project-docs-setup --lite" in ctx,
+           "the agent asks; nothing is set up", ms, ctx)
+    record(A, "...and nothing was written", not (r / "docs").exists() and not (r / ".claude").exists(), "", None, "")
+    ctx, ms, rc = bash(r, "git commit -am y", lambda: (write(r, "src/app.py", "x = 3\n"), git(r, "commit", "-qam", "second")))
+    record(A, "second commit in the same repo", ctx == "", "offered once per repository", ms, ctx)
+    write(r, "src/app.py", "x = 4\n"); git(r, "commit", "-qam", "terminal")
+    other = new_repo("g-offer2", scaffold=False)
+    ctx, ms, rc = bash(other, "git status")
+    record(A, "no commit made by the call", ctx == "", "", ms, ctx)
+    site = new_repo("g-site", {"docs/intro.md": "# i\n", "mkdocs.yml": "site_name: x\n", "a.py": "a\n", "b.py": "b\n", "c.py": "c\n"}, scaffold=False)
+    ctx, ms, rc = bash(site, "git commit -am x", lambda: (write(site, "a.py", "a2\n"), git(site, "commit", "-qam", "x")))
+    record(A, "docs site owns docs/", ctx == "", "setup would refuse; do not offer", ms, ctx)
+    tiny = TMP / "g-tiny"; tiny.mkdir(); git(tiny, "init", "-q", "-b", "main"); write(tiny, "a.py", "a\n"); git(tiny, "add", "-A"); git(tiny, "commit", "-qm", "i")
+    ctx, ms, rc = bash(tiny, "git commit -am x", lambda: (write(tiny, "a.py", "b\n"), git(tiny, "commit", "-qam", "x")))
+    record(A, "repo with almost no files", ctx == "", "", ms, ctx)
+
+    g = TMP / "g-grow"; g.mkdir()
+    for rel in ("src/app.py", "src/util.py", "src/db.py", "lib/x.py", "lib/y.py", "tests/test_x.py"):
+        write(g, rel, "x = 1\n")
+    git(g, "init", "-q", "-b", "main"); git(g, "add", "-A"); git(g, "commit", "-qm", "init")
+    res = sh(g, sys.executable, str(SCAFFOLD), "--root", ".", "--name", "g", "--grow")
+    record(A, "--grow marks the contract", "docs-mode: grow" in (g / "docs/CLAUDE.md").read_text(), "", None, res.stdout)
+    page(g, "subsystems", "app", ["src/app.py"], "App.")
+    git(g, "add", "-A"); git(g, "commit", "-qm", "lite start")
+    ctx, ms, rc = bash(g, "git commit -am x", lambda: (write(g, "src/db.py", "z = 2\n"), git(g, "commit", "-qam", "db")))
+    record(A, "grow mode: commit touches a file no page covers", "src/db.py" in ctx and "grows as you work" in ctx,
+           "an existing file, not only new ones", ms, ctx)
+    ctx, ms, rc = bash(g, "git commit -am y", lambda: (write(g, "tests/test_x.py", "x = 2\n"), git(g, "commit", "-qam", "t")))
+    record(A, "grow mode: only a test changed", ctx == "", "tests are not news", ms, ctx)
+    res = sh(g, sys.executable, str(SCAFFOLD), "--root", ".", "--uncovered", check=False)
+    record(A, "--uncovered lists the gaps", "4 of 5 code files" in res.stdout and "lib/" in res.stdout and "test_x" not in res.stdout,
+           "covered and test files left out", None, res.stdout)
+    full = new_repo("g-full")
+    page(full, "subsystems", "app", ["src/app.py"], "App.")
+    git(full, "add", "-A"); git(full, "commit", "-qm", "p")
+    ctx, ms, rc = bash(full, "git commit -am x", lambda: (write(full, "src/db.py", "z = 3\n"), git(full, "commit", "-qam", "db")))
+    record(A, "full mode: same commit stays silent", ctx == "", "a full wiki leaves some code uncovered on purpose", ms, ctx)
+
+
 # ------------------------------------------------------------------ edit hook ---
 def edit_hook():
     A = "edit hook"
@@ -462,7 +506,7 @@ def scaffold_lint():
 
 
 def main():
-    for fn in (commit_hook, release_and_drift, edit_hook, session_hook, scaffold_lint):
+    for fn in (commit_hook, release_and_drift, grow_mode, edit_hook, session_hook, scaffold_lint):
         try:
             fn()
         except Exception as e:

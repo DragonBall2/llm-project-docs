@@ -48,7 +48,8 @@ def lint_version(path: Path) -> str:
 
 
 SETUP_HINT = ("llm-project-docs: this repository has no docs/ wiki yet, so its hooks stay "
-              "silent here. Run /project-docs-setup to create one. (Shown once per repository.)")
+              "silent here. /project-docs-setup --lite starts one in seconds that grows as "
+              "you work; /project-docs-setup builds it all at once. (Shown once per repository.)")
 MIN_TRACKED = 5  # fewer tracked files than this is not a codebase worth a wiki
 
 
