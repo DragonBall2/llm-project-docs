@@ -2,11 +2,11 @@
 title: One test file, and how to know it would catch a break
 type: operation
 created: 2026-09-24
-updated: 2026-10-26
+updated: 2026-11-01
 sources:
   - code: tests/test_roundtrip.py
   - code: tests/scenarios.py
-verified_at: dc78a11
+verified_at: 16cda78
 ---
 
 # Testing
@@ -50,11 +50,11 @@ once-per-session marker files the test creates in the temp dir.
 ## Scenarios
 
 `tests/scenarios.py` drives the hooks exactly as Claude Code does, on throwaway
-repositories, through 69 cases: aliased, scripted, amended, reverted, cherry-picked,
+repositories, through 80 cases: aliased, scripted, amended, reverted, cherry-picked,
 rebased and merge commits; a commit someone else made; stash, checkout, pull; Korean
 paths and paths with spaces; ⚠️ in code fences, mid-sentence and in very long traps; 300-page wikis and
 2,000-commit histories; doc-site repositories; declared release commands and code commits piling up in a
-long-lived session. Each row prints latency and message size,
+long-lived session; the first-commit offer, grow-mode notices and `--uncovered`. Each row prints latency and message size,
 since the hooks run on every Bash call and every edit. About 15 seconds.
 
 ## Mutation checks

@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-26
+updated: 2026-11-01
 sources:
   - code: plugin/hooks/
-verified_at: dc78a11
+verified_at: 16cda78
 ---
 
 # Hooks
@@ -52,6 +52,13 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 
 - Since 1.11.0 the session hook also runs on `compact` and `clear`. Sessions in the field
   ran for days, compacted and never restarted, and never heard it again
+- In a repository with no wiki, the Bash hook records HEAD too and, at the agent's first
+  commit there, tells the agent to ask the user once whether to start a wiki that grows
+  as you work (`/project-docs-setup --lite`). Not where a docs site owns `docs/`, not in
+  a repository with under five files, never twice (`offer-asked`, hashed keys)
+- In grow mode (`docs-mode: grow` in the contract) the commit hook names every touched
+  file no page covers yet, not only new ones, and asks for a short page when the task is
+  done
 - The Bash hook adds two checks after every call, both said to the user and the agent:
   a command matching the repository's `release-commands:` line (a deploy moves no
   commit, yet it is when `/docs-sync` is due), and 10 code commits since the docs state was

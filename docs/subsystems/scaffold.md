@@ -2,11 +2,11 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-26
+updated: 2026-11-01
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: dc78a11
+verified_at: 16cda78
 ---
 
 # scaffold.py
@@ -87,6 +87,27 @@ location.
 - The generated `/docs-sync` warns: one syncer at a time, pull first. Two sessions
   syncing together both append `log.md` and edit `index.md`. Existing repositories keep
   their old command file; only the linter has a re-copy path
+
+## Three ways in: full, lite, complete
+
+- **Full** (`/project-docs-setup`): the original setup, the whole codebase at once
+- **Lite** (`--lite`, scaffold `--grow`): a skeleton and one page for the area being
+  worked on, in seconds. The contract gets a "grows as you work" section and
+  `docs-mode: grow`, and the commit hook then names touched files no page covers
+- **Complete** (`--complete`, or a rerun that finds uncovered code): `scaffold.py
+  --uncovered` lists code no page's sources cover, grouped by directory; only that is
+  read, existing pages are not edited, and `docs-mode` becomes `complete`
+
+> ⚠️ Installs did not become setups: 22 from 1,206 installers, none for 17 days after a
+> one-time line at session start (2026-10-29 data). Lite exists so the first step costs
+> seconds, and the commit hook offers it at the agent's first commit in a repository with
+> no wiki, once, through the agent asking the user. It never sets anything up itself.
+
+> ⚠️ The skill must run the scaffold that ships next to it (its base directory, then
+> `../../scripts/`). Searching `~/.claude/plugins` with `sort -V | tail -1` picks
+> `marketplaces/...` over `cache/...` because it compares full paths, and the
+> marketplace's git clone can be older than the installed version. Two end-to-end runs
+> of 1.12.0 got a scaffold without `--grow` and `--uncovered` that way.
 
 ## Repositories it refuses or warns about
 

@@ -201,3 +201,16 @@ SessionStart on compact and clear; the Bash hook says when 10 code commits pile 
 when a declared `release-commands` command runs; `/docs-sync` warns about concurrent
 syncs; the linter no longer hides notes past 10. Open from the report: pages that describe
 a released version rather than HEAD, and branch-only features. See [[hooks]].
+
+## [2026-11-01] 1.12.0 | start small and grow
+
+Usage through 2026-10-29: 1,302 installs, 1,206 installers, 22 setups, none since
+2026-10-12. The user proposed a mode that starts a wiki with no up-front cost and fills it
+where work happens, completing it whenever someone wants the whole picture. Built with
+one change to the proposal: it is not created in every project automatically. At the
+agent's first commit in a repository without a wiki, the agent asks the user once; on yes,
+`/project-docs-setup --lite` makes a skeleton and a page in under a minute
+(`docs-mode: grow`). The commit hook then names touched files no page covers. A later
+`/project-docs-setup --complete` fills only the gaps (`scaffold.py --uncovered`) and keeps
+existing pages byte for byte. All three paths were run end to end with `--plugin-dir`
+before release, which also caught the skill picking an older scaffold. See [[scaffold]].

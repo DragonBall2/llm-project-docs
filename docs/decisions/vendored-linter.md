@@ -2,11 +2,11 @@
 title: Why the linter is copied into each repo instead of referenced
 type: decision
 created: 2026-09-24
-updated: 2026-10-06
+updated: 2026-11-01
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: dc78a11
+verified_at: 16cda78
 ---
 
 # Decision: vendor the linter
@@ -52,7 +52,8 @@ python3 <plugin cache>/scripts/scaffold.py --root . --lint-only
 ```
 
 The hook prints the exact path of its own scaffold, because a `find` over the plugin
-cache also sees every older version still lying there. `--lint-only` overwrites the
+cache also sees every older version still lying there. The setup skill follows the same
+rule since 1.12.0: it runs the scaffold next to itself, never one found by searching. `--lint-only` overwrites the
 linter and nothing else. A copy with no `LINT_VERSION` at
 all, meaning anything scaffolded before 1.3.0, counts as outdated. The hook still does not
 copy anything itself: that file is in the repository's history and changes to it should be

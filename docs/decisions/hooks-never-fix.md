@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-10-26
+updated: 2026-11-01
 sources:
   - code: plugin/hooks/
-verified_at: dc78a11
+verified_at: 16cda78
 ---
 
 # Decision: hooks point, they do not fix
@@ -41,6 +41,10 @@ covers them. Silence there meant the wiki could be corrected but never grow.
 So is the mention of pages edited without moving `verified_at` (1.9.0): once per commit,
 only for those pages. Silence there let a whole wiki read stale while its prose was
 current, which is the noise this rule exists to prevent, arrived at the other way.
+
+The first-commit offer (1.12.0) is the nearest the plugin comes to acting on its own,
+and it still does not: it tells the agent to *ask*, once per repository, and the
+setup only runs on the user's yes.
 
 The 1.11.0 checks follow the same shape: a declared release command, said once per
 run; 10 code commits since the last report, said once and then counted again. Both
