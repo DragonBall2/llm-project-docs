@@ -191,7 +191,8 @@ def main() -> int:
     pages = counts.get("stale_pages") or []
     stale = counts.get("stale", 0)
     problems = counts.get("problems", 0)
-    if not stale and not problems and not outdated:
+    drawings = counts.get("diagrams_behind") or []  # absent before LINT_VERSION 5
+    if not stale and not problems and not outdated and not drawings:
         remember(root, "")  # clean: the next drift is news again
         return 0
 
@@ -209,6 +210,11 @@ def main() -> int:
         out.append(f"docs: {problems} problem(s) -- run /docs-lint.")
         for line in (counts.get("problem_list") or [])[:3]:  # absent in copies before LINT_VERSION 3
             out.append(f"  {line}")
+    if drawings:
+        out.append(f"docs: {len(drawings)} diagram(s) no longer match the page that describes them "
+                   "(update only if the user asks):")
+        for d in drawings[:5]:
+            out.append(f"  {d.get('diagram')} ([[{d.get('page')}]]): " + "; ".join((d.get("issues") or [])[:3]))
     if outdated:
         out.append("docs: this repo's linter copy is older than the plugin's. Re-copy it with:\n"
                    f"  {RECOPY}")
@@ -227,12 +233,15 @@ def main() -> int:
         first = (counts.get("problem_list") or [""])[0]
         user.append(f"docs: {problems} problem(s)" + (f", e.g. {first}" if first else "")
                     + ". /docs-lint lists them.")
+    if drawings:
+        user.append(f"docs: {len(drawings)} diagram(s) are behind their page. Ask Claude to update "
+                    "them, or edit them yourself.")
     if outdated:
         user.append("docs: the linter copied into this repo is older than the plugin's; "
                     "ask Claude to re-copy it.")
     payload = {"hookSpecificOutput": {"hookEventName": "SessionStart",
                                       "additionalContext": "\n".join(out)}}
-    state = f"{stale}/{worst}/{problems}/{int(outdated)}"
+    state = f"{stale}/{worst}/{problems}/{int(outdated)}/{len(drawings)}"
     if remember(root, state):
         payload["systemMessage"] = "\n".join(user)
     json.dump(payload, sys.stdout, ensure_ascii=False)

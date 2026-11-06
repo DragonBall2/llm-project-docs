@@ -63,6 +63,8 @@ tear them apart. Rerunning means one of these, and each has its own answer:
 | a new category | create the directory, add its section to `docs/index.md`, and its row to the category table in `docs/CLAUDE.md`. Nothing else |
 | the wiki was scaffolded but never filled (no page files, `docs/index.md` still has its TODO comments) | continue from **Step 3** below; the scaffold is done |
 | `--complete` in the arguments, or the wiki says `docs-mode: grow` and the user wants the whole picture | **Complete** (below) |
+| `--diagram` in the arguments, or the user asks for a system diagram | **System diagram** (below), working from the existing pages, not the whole codebase |
+| the linter notes a `.drawio` in `docs/` bound to no page | ask which to do: **bind it as is** (add it under `diagrams:` on the page it illustrates; it stays a hand-made drawing, only checked for existence) or **adopt it** (write a `## Nodes`/`## Edges` page from its boxes and give those cells `n-<node>` ids with a draw.io MCP server, so it is checked against the page from then on). Adopting edits the drawing, so only on yes |
 | nothing specific | run `python3 "$SCAFFOLD" --root <repo> --uncovered`. If it lists uncovered code, say how much and where in one or two lines and offer to **Complete**; do it only on yes. Otherwise run `/docs-status` and report it |
 
 ### Complete: fill the gaps, keep what is there
@@ -222,6 +224,29 @@ Start at [`docs/index.md`](docs/index.md).
 ```
 
 Fix **every stale document link** in the root CLAUDE.md and README (`docs/SPEC.md` etc.).
+
+## Step 5-1: system diagram (optional)
+
+After the pages exist, if you have draw.io MCP tools (names like `load_diagram`,
+`create_new_diagram`, `export_diagram`), ask once whether to draw a system concept
+diagram as well: one picture of the main parts and how they connect, for people. With
+`--diagram` in the arguments, the answer is yes. Without such tools, do not offer; say in
+the report that one can be drawn later on request.
+
+### System diagram
+
+1. Write `docs/architecture/system-map.md` (type `architecture`): `sources` covering the
+   parts it shows, `diagrams: - docs/architecture/system-map.drawio`, and the body as
+   `## Nodes` and `## Edges` in the format in `docs/CLAUDE.md`. Six to fifteen nodes;
+   each links to the page that explains it. Structure only, no explanations.
+2. Draw it with the MCP server: `start_session`, then `create_new_diagram` with each node
+   as a cell whose id is `n-<node>` and whose label contains the node's label, and each
+   edge from `n-a` to `n-b`. Follow the server's drawing guide; check with a screenshot
+   and fix overlaps.
+3. `export_diagram` to `<repo>/docs/architecture/system-map.drawio` (absolute path, plain
+   `.drawio`, not compressed). Link the page from `docs/index.md`.
+4. Run the linter: it must report no diagram behind its page. Tell the user the picture
+   is theirs to edit by hand; the page decides what is in it, they decide how it looks.
 
 ## Step 6: verify
 

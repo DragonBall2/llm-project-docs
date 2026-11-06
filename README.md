@@ -279,6 +279,24 @@ as `unverified`, so skipping the reading remains visible.
 Rules like "run `/docs-sync` after every deploy" can be written into `docs/CLAUDE.md`,
 but a rule in a file is not a mechanism. These are the mechanism.
 
+## Diagrams, for people
+
+The pages are enough for an agent; a picture is for the person who wants the whole system
+at a glance. So a diagram is drawn only when someone asks, and stays theirs to edit.
+
+- `/project-docs-setup --diagram`, or saying yes when full setup offers it, writes
+  `docs/architecture/system-map.md`: the parts and connections as a list, each part
+  linked to its page. With a draw.io MCP server (for example Next AI Draw.io) it also
+  draws `system-map.drawio` from that list. Without one, it is not offered
+- The page says *what* is in the picture, the `.drawio` file how it looks. Boxes carry ids
+  `n-<part>`, and the linter compares only those ids, labels and connections. Move boxes,
+  recolour them, add notes: none of that is checked or overwritten
+- When the page changes and the drawing no longer matches, the hooks tell you which
+  parts are missing. The agent updates the drawing only if you ask, editing just those
+  cells; or you edit it in draw.io yourself
+- Any `.drawio` in `docs/` should be listed under `diagrams:` on the page it illustrates.
+  A hand-made drawing with no node list is only checked for existence
+
 ## What it will not do
 
 - **Find contradictions between pages, or duplicated prose.** Those need reading. The

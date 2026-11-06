@@ -71,6 +71,20 @@ session hook can say what is wrong. The text output used to stop at 10 notes wit
 saying so; a session fixed the 10 it saw and another found more. It now says how many
 are hidden, and `--all` shows them (`LINT_VERSION` 4).
 
+## Diagrams
+
+`diagrams:` in a page's frontmatter binds `.drawio` files to it (`LINT_VERSION` 5). A
+missing file is a problem. If the page lists `## Nodes` and `## Edges`, the drawing is
+parsed with `xml.etree` and compared by id only: node `x` is the cell `n-x` whose
+HTML-stripped label contains the page's label, an edge is any edge between the two cells
+in either direction. What the drawing lacks goes to `diagrams_behind` (text and `--json`),
+not to problems: a picture behind its page is not a broken wiki. `n-` cells the page does
+not list, `.drawio` files in `docs/` outside `raw/` that no page claims, and compressed
+files that cannot be read are notes.
+
+> ⚠️ Compare ids and labels, never geometry or style. People edit the drawing by hand;
+> anything else the check looks at becomes something the agent "fixes" over their edits.
+
 ## The Korean fork
 
 The gwiroman repository carries a hand-synced copy at .claude/scripts/docs-lint.py with Korean output strings
