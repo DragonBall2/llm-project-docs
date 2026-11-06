@@ -161,6 +161,11 @@ def main() -> int:
     # before running it: a copy too old to run is the one that needs this most.
     mine, theirs = lint_version(PLUGIN_LINT), lint_version(linter)
     outdated = bool(mine) and mine != theirs
+    # 5 only added diagram checks. A repo with no drawing in docs/ gains nothing from
+    # re-copying, so do not tell every existing wiki to do it.
+    if outdated and (mine, theirs) == ("5", "4") and not any(
+            f.name.endswith((".drawio", ".drawio.svg")) for f in (root / "docs").rglob("*.drawio*")):
+        outdated = False
 
     counts: dict = {}
     try:
@@ -241,7 +246,9 @@ def main() -> int:
                     "ask Claude to re-copy it.")
     payload = {"hookSpecificOutput": {"hookEventName": "SessionStart",
                                       "additionalContext": "\n".join(out)}}
-    state = f"{stale}/{worst}/{problems}/{int(outdated)}/{len(drawings)}"
+    state = f"{stale}/{worst}/{problems}/{int(outdated)}"  # 1.12 format: no repeat after update
+    if drawings:
+        state += f"/{len(drawings)}"
     if remember(root, state):
         payload["systemMessage"] = "\n".join(user)
     json.dump(payload, sys.stdout, ensure_ascii=False)

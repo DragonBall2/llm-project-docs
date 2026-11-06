@@ -420,6 +420,17 @@ def diagrams():
     write(r, "docs/raw/old.drawio", drawio([("a", "A")]))
     out = lint()
     record(A, "unbound diagram noted; raw/ ignored", "bound to no page: docs/stray.drawio" in out and "raw/old" not in out, "", None, out)
+    old = TMP / "dg-old"
+    shutil.copytree(r, old)
+    vend = old / ".claude/scripts/docs-lint.py"
+    vend.write_text(vend.read_text().replace('LINT_VERSION = "5"', 'LINT_VERSION = "4"'))
+    shutil.rmtree(old / "docs/architecture"); (old / "docs/stray.drawio").unlink(); shutil.rmtree(old / "docs/raw")
+    (old / "docs/raw").mkdir()
+    out, user, ms, rc = session(old)
+    record(A, "linter 4 in a wiki without drawings: no re-copy notice", "older" not in out + user, "5 only adds diagrams", ms, out + user)
+    write(old, "docs/x.drawio", drawio([("a", "A")]))
+    out, user, ms, rc = session(old)
+    record(A, "linter 4 with a drawing in docs/: re-copy notice", "older" in out, "", ms, out)
     write(r, "docs/architecture/system-map.drawio", '<mxfile><diagram id="a" name="p">7VZNb5tAEP01</diagram></mxfile>')
     out = lint()
     record(A, "compressed drawing: not checked, says why", "diagram not checked" in out and "uncompressed" in out, "", None, out)
