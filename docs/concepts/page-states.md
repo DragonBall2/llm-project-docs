@@ -5,7 +5,7 @@ created: 2026-09-24
 updated: 2026-10-06
 sources:
   - code: plugin/scripts/lint.py
-verified_at: dc78a11
+verified_at: a7ea889
 ---
 
 # Page states

@@ -6,7 +6,7 @@ updated: 2026-11-01
 sources:
   - code: tests/test_roundtrip.py
   - code: tests/scenarios.py
-verified_at: 16cda78
+verified_at: a7ea889
 ---
 
 # Testing
