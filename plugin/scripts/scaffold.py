@@ -163,8 +163,6 @@ sources:
   - raw:  YYYY-MM-DD_meeting-notes.md
   - ext:  https://...
 verified_at: <short sha>              # the commit this page was checked against
-diagrams:                             # optional: drawings this page explains
-  - docs/architecture/system-map.drawio
 ---
 ```
 
@@ -187,34 +185,6 @@ Rules:
     is the one place where "did you actually read it?" becomes visible
 - **One fact lives on one page.** Link from anywhere else that needs it.
   In particular, a lookup page and an exploratory page must not each carry the same table
-
-## Diagrams
-
-Diagrams are for people: the pages already say everything an agent needs. So people
-decide when one is drawn or changed, and can edit it by hand at any time.
-
-- A diagram belongs to the page that explains it: list it under `diagrams:` in that
-  page's frontmatter. The linter reports a diagram in `docs/` that no page claims.
-- A page that owns a diagram item by item lists `## Nodes` and `## Edges`:
-
-  ```
-  ## Nodes
-  - `server` Server (Node.js) -> [[server-architecture]]
-  ## Edges
-  - `app` -> `server`: HTTPS
-  ```
-
-  The page says *what* is in the picture; the `.drawio` file says how it looks. In the
-  drawing, each node is the cell with id `n-<node>`. The linter compares only those ids,
-  their labels and the edges between them, so positions, colours and anything drawn by
-  hand without an `n-` id are never touched or reported as wrong.
-- Keep the page structural: names, connections, links to the pages that explain each
-  part. Explanations live on those pages, once.
-- When the page changes, the drawing can fall behind; the hooks say so. **Update the
-  drawing only when someone asks.** With a draw.io MCP server: `load_diagram`, edit the
-  cells by id, keep positions and styles, check with a screenshot, `export_diagram` to
-  the same path, and let them look before committing. Without one, say what needs to
-  change and leave it to them.
 
 ## What counts as code
 

@@ -360,71 +360,6 @@ def grow_mode():
     record(A, "full mode: same commit stays silent", ctx == "", "a full wiki leaves some code uncovered on purpose", ms, ctx)
 
 
-# ------------------------------------------------------------------- diagrams ---
-def drawio(cells):
-    """An uncompressed .drawio; cells = [(id, label)] for boxes, [(id, src, dst)] for edges."""
-    out = []
-    for c in cells:
-        if len(c) == 2:
-            out.append(f'<mxCell id="{c[0]}" value="{c[1]}" style="rounded=1;fillColor=#f8cecc;" vertex="1" parent="1">'
-                       f'<mxGeometry x="40" y="40" width="120" height="60" as="geometry"/></mxCell>')
-        else:
-            out.append(f'<mxCell id="{c[0]}" edge="1" source="{c[1]}" target="{c[2]}" parent="1">'
-                       f'<mxGeometry relative="1" as="geometry"/></mxCell>')
-    return ('<mxfile><diagram id="d" name="p"><mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/>'
-            + "".join(out) + "</root></mxGraphModel></diagram></mxfile>")
-
-
-def diagrams():
-    A = "diagrams"
-    r = new_repo("dg")
-    sha = git(r, "rev-parse", "--short", "HEAD").stdout.strip()
-    spec = ("## Nodes\n- `app` App server -> [[x]]\n- `db` Database\n\n"
-            "## Edges\n- `app` -> `db`: SQL\n")
-    write(r, "docs/architecture/system-map.md",
-          f"---\ntitle: System map\ntype: architecture\ncreated: 2026-01-01\nupdated: 2026-01-01\n"
-          f"sources:\n  - code: src/\ndiagrams:\n  - docs/architecture/system-map.drawio\n"
-          f"verified_at: {sha}\n---\n\n# System map\n\n{spec}")
-    idx = r / "docs/index.md"; idx.write_text(idx.read_text() + "\n- [[system-map]]\n")
-    lint = lambda: sh(r, sys.executable, str(LINT), "--root", ".", check=False).stdout
-    out = lint()
-    record(A, "bound diagram file missing", "broken diagram: system-map" in out, "a problem, like a broken link", None, out)
-    write(r, "docs/architecture/system-map.drawio",
-          drawio([("n-app", "App&lt;br&gt;server"), ("n-db", "Database"), ("note", "hand note"), ("e1", "n-db", "n-app")]))
-    out = lint()
-    record(A, "drawing matches: html label, reversed edge, hand-drawn box",
-           "behind" not in out and "hand note" not in out and "not on the page" not in out,
-           "positions, colours, un-ided cells ignored", None, out)
-    git(r, "add", "-A"); git(r, "commit", "-qm", "map")
-    def grow_page():
-        p = r / "docs/architecture/system-map.md"
-        p.write_text(p.read_text().replace("- `db` Database", "- `db` Postgres database\n- `queue` Job queue")
-                     + "- `app` -> `queue`: jobs\n")
-        git(r, "commit", "-qam", "page grows")
-    ctx, ms, rc = bash(r, "git commit -am x", grow_page)
-    record(A, "commit edits the page: hook names what the drawing lacks",
-           "missing node `queue`" in ctx and "label of `db` differs" in ctx and "missing edge `app` -> `queue`" in ctx
-           and "only if they ask" in ctx, "", ms, ctx)
-    out, user, ms, rc = session(r)
-    record(A, "session start tells the user", "diagram(s) are behind" in user and "Ask Claude" in user, "", ms, user)
-    ctx, ms, rc = bash(r, "git commit -am y", lambda: (write(r, "src/app.py", "x = 9\n"), git(r, "commit", "-qam", "code")))
-    record(A, "code-only commit does not repeat the diagram line", "diagram" not in ctx, "said once, at the page edit", ms, ctx)
-    write(r, "docs/architecture/system-map.drawio",
-          drawio([("n-app", "App server"), ("n-db", "Postgres database"), ("n-queue", "Job queue"), ("n-old", "Old"),
-                  ("e1", "n-app", "n-db"), ("e2", "n-app", "n-queue")]))
-    out = lint()
-    record(A, "drawing updated; extra n- box noted, not failed",
-           "behind" not in out and "not on the page: docs/architecture/system-map.drawio -> `old`" in out,
-           "", None, out)
-    write(r, "docs/stray.drawio", drawio([("a", "A")]))
-    write(r, "docs/raw/old.drawio", drawio([("a", "A")]))
-    out = lint()
-    record(A, "unbound diagram noted; raw/ ignored", "bound to no page: docs/stray.drawio" in out and "raw/old" not in out, "", None, out)
-    write(r, "docs/architecture/system-map.drawio", '<mxfile><diagram id="a" name="p">7VZNb5tAEP01</diagram></mxfile>')
-    out = lint()
-    record(A, "compressed drawing: not checked, says why", "diagram not checked" in out and "uncompressed" in out, "", None, out)
-
-
 # ------------------------------------------------------------------ edit hook ---
 def edit_hook():
     A = "edit hook"
@@ -571,7 +506,7 @@ def scaffold_lint():
 
 
 def main():
-    for fn in (commit_hook, release_and_drift, grow_mode, diagrams, edit_hook, session_hook, scaffold_lint):
+    for fn in (commit_hook, release_and_drift, grow_mode, edit_hook, session_hook, scaffold_lint):
         try:
             fn()
         except Exception as e:

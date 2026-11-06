@@ -2,11 +2,11 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-11-06
+updated: 2026-11-01
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 58ced52
+verified_at: 16cda78
 ---
 
 # scaffold.py
@@ -108,15 +108,6 @@ location.
 > `marketplaces/...` over `cache/...` because it compares full paths, and the
 > marketplace's git clone can be older than the installed version. Two end-to-end runs
 > of 1.12.0 got a scaffold without `--grow` and `--uncovered` that way.
-
-## System diagram
-
-Step 5-1 of the skill: after a full setup, if draw.io MCP tools that can load and export
-files are present, ask once whether to draw a system map. `--diagram` runs only that step
-on an existing wiki. An unbound `.drawio` already in `docs/` is either bound as is or,
-on yes, adopted (cells given `n-` ids). The contract template carries the Diagrams rules.
-End-to-end on 2026-11-06: existing 4-page wiki, `--diagram`, 44 s, $0.58, 6 nodes and 5
-edges, lint clean.
 
 ## Repositories it refuses or warns about
 

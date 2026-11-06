@@ -215,14 +215,9 @@ agent's first commit in a repository without a wiki, the agent asks the user onc
 existing pages byte for byte. All three paths were run end to end with `--plugin-dir`
 before release, which also caught the skill picking an older scaffold. See [[scaffold]].
 
-## [2026-11-06] plugin | 1.13.0, diagrams for people
+## [2026-11-07] plugin | 1.13.1, diagrams withdrawn to a branch
 
-- A page owns a diagram via `diagrams:`; `## Nodes`/`## Edges` list what is in it, the
-  `.drawio` decides how it looks. Linter compares ids `n-<node>`, labels and edges only
-  (`LINT_VERSION` 5), so hand edits are never reported or overwritten
-- Commit hook names what a drawing lacks after a page edit; session hook tells the user.
-  The agent updates a drawing only on request
-- Setup offers a system map when draw.io MCP tools are present; `--diagram` adds one to
-  an existing wiki. Tested live with Next AI Draw.io: drew, hand-edited, page grew, agent
-  updated only the `n-` cells, red box and sticky note survived
-- 8 diagram scenarios (88 total). Korean fork not yet ported to 5
+1.13.0 bumped `LINT_VERSION` to 5, so every existing wiki was told to re-copy its linter
+for a feature it does not use. 1.13.1 is 1.12.0's behaviour; the diagram work lives on
+the `diagrams` branch and reaches `main` only after it has been used locally. New
+features follow that path from now on (see [[release]]).

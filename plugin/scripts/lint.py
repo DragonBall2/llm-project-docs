@@ -22,7 +22,7 @@ from pathlib import Path
 # Bumped when this file's behaviour changes. The SessionStart hook compares the copy
 # in a repository against the plugin's and says so when they differ; a translated
 # fork keeps the same number once it has the same logic.
-LINT_VERSION = "5"
+LINT_VERSION = "4"
 
 REQUIRED_FM = ("title", "type", "verified_at")
 META_PAGES = {"index", "log", "CLAUDE", "README"}
@@ -60,102 +60,6 @@ def frontmatter(text: str) -> str | None:
         return None
     parts = text.split("---", 2)
     return parts[1] if len(parts) >= 3 else None
-
-
-def diagram_paths(fm: str) -> list[str]:
-    """Paths listed under `diagrams:` in a page's frontmatter."""
-    out, inside = [], False
-    for line in fm.splitlines():
-        if re.match(r"^diagrams:\s*$", line):
-            inside = True
-            continue
-        if inside:
-            m = re.match(r"^\s+-\s*(\S.*?)\s*$", line)
-            if not m:
-                break
-            out.append(m.group(1).strip("\"'"))
-    return out
-
-
-def diagram_spec(text: str) -> tuple[dict[str, str], list[tuple[str, str]]]:
-    """Nodes and edges a page declares for its diagram.
-
-    ## Nodes
-    - `server` Server (Node.js) -> [[server-architecture]]
-    ## Edges
-    - `app` -> `server`: HTTPS
-
-    The page owns *what* is in the picture; the .drawio file owns how it looks.
-    """
-    nodes: dict[str, str] = {}
-    edges: list[tuple[str, str]] = []
-    section = ""
-    for line in body(text).splitlines():
-        h = re.match(r"^##\s+(\w+)", line)
-        if h:
-            section = h.group(1).lower()
-            continue
-        if section == "nodes":
-            m = re.match(r"^-\s*`([\w-]+)`\s+(.+?)\s*$", line)
-            if m:
-                nodes[m.group(1)] = re.split(r"\s+->\s+\[\[", m.group(2))[0].strip()
-        elif section == "edges":
-            m = re.match(r"^-\s*`([\w-]+)`\s*->\s*`([\w-]+)`", line)
-            if m:
-                edges.append((m.group(1), m.group(2)))
-    return nodes, edges
-
-
-def _norm(t: str) -> str:
-    import html as _html
-    t = _html.unescape(re.sub(r"<[^>]+>", " ", _html.unescape(t or "")))
-    return re.sub(r"\s+", " ", t).strip().lower()
-
-
-def diagram_diff(path: Path, nodes: dict[str, str], edges: list[tuple[str, str]]):
-    """What the drawing lacks against the page, or None if it cannot be read.
-
-    Only ids and labels are compared: a node is the cell `n-<id>` whose text contains
-    the page's label; an edge is any edge from `n-a` to `n-b`. Positions, sizes,
-    colours and anything a person drew without an `n-` id are not looked at, so hand
-    edits survive. Compressed files cannot be read and are reported as such.
-    """
-    import xml.etree.ElementTree as ET
-    try:
-        root = ET.fromstring(path.read_text(encoding="utf-8"))
-    except Exception:
-        return None
-    cells = {}
-    found_model = False
-    for d in root.iter("diagram"):
-        if d.find(".//mxGraphModel") is None and (d.text or "").strip():
-            return None  # compressed diagram: cannot check
-    for el in root.iter():
-        if el.tag in ("mxCell", "object", "UserObject"):
-            found_model = True
-            cid = el.get("id")
-            if not cid:
-                continue
-            inner = el.find("mxCell") if el.tag != "mxCell" else el
-            cells[cid] = {"value": el.get("label") if el.tag != "mxCell" else el.get("value"),
-                          "edge": inner is not None and inner.get("edge") == "1",
-                          "source": inner.get("source") if inner is not None else None,
-                          "target": inner.get("target") if inner is not None else None}
-    if not found_model:
-        return None
-    issues = []
-    for nid, label in nodes.items():
-        c = cells.get(f"n-{nid}")
-        if c is None:
-            issues.append(f"missing node `{nid}`")
-        elif _norm(label) not in _norm(c["value"]):
-            issues.append(f"label of `{nid}` differs (page: {label})")
-    pairs = {(c["source"], c["target"]) for c in cells.values() if c["edge"]}
-    for a, b in edges:
-        if (f"n-{a}", f"n-{b}") not in pairs and (f"n-{b}", f"n-{a}") not in pairs:
-            issues.append(f"missing edge `{a}` -> `{b}`")
-    extra = sorted(k[2:] for k in cells if k.startswith("n-") and k[2:] not in nodes)
-    return issues, extra
 
 
 def body(text: str) -> str:
@@ -389,40 +293,6 @@ def main() -> int:
         if skipped:
             unverified.append(f"{name} -- sha moved past {len(skipped.splitlines())} code commits with no body change ({old}->{new})")
 
-    # (9) diagrams bound to pages: present, and not behind the page that owns them
-    diagrams_behind: list[tuple[str, str, list[str]]] = []
-    bound: set[str] = set()
-    for name, p in sorted(pages.items()):
-        text = p.read_text(encoding="utf-8")
-        fm = frontmatter(text) or ""
-        paths = diagram_paths(fm)
-        if not paths:
-            continue
-        nodes, edges = diagram_spec(text)
-        for dp in paths:
-            bound.add(dp)
-            f = root / dp
-            if not f.exists():
-                problems.append(f"broken diagram: {name} -> {dp}")
-                continue
-            if not nodes:
-                continue  # a hand-made diagram the page does not describe item by item
-            res = diagram_diff(f, nodes, edges) if f.suffix == ".drawio" else None
-            if res is None:
-                notes.append(f"diagram not checked: {name} -> {dp} (save it as an uncompressed .drawio)")
-                continue
-            issues, extra = res
-            if issues:
-                diagrams_behind.append((name, dp, issues))
-            if extra:
-                notes.append(f"in the diagram but not on the page: {dp} -> " + ", ".join(f"`{x}`" for x in extra))
-    for f in sorted(docs.rglob("*")):
-        if f.is_file() and (f.name.endswith(".drawio") or f.name.endswith(".drawio.svg")) \
-                and "raw" not in f.relative_to(docs).parts:
-            rel = f.relative_to(root).as_posix()
-            if rel not in bound:
-                notes.append(f"diagram bound to no page: {rel} (list it under `diagrams:` on the page it illustrates)")
-
     # (5) code citation line numbers
     cite_re = re.compile(rf"`([\w./-]+\.(?:{CODE_EXT}))(?::(\d+))?`")
     checked: set[tuple[str, str]] = set()
@@ -464,7 +334,6 @@ def main() -> int:
             "stale": len(stale),
             # Page-level detail so a hook never has to parse the prose above.
             "stale_pages": [{"page": n, "commits": c} for n, c in stale],
-            "diagrams_behind": [{"page": n, "diagram": d, "issues": i} for n, d, i in diagrams_behind],
             "unverified": len(unverified),
             "notes": len(notes),
             "todos": len(todos),
@@ -487,10 +356,6 @@ def main() -> int:
             print(f"\n{len(stale)} stale -> run /docs-sync")
             for n, c in stale:
                 print(f"   ! {n} ({c} commits)")
-        if diagrams_behind:
-            print(f"\n{len(diagrams_behind)} diagram(s) behind their page -> update on request, or by hand")
-            for n, d, i in diagrams_behind:
-                print(f"   ~ {d} ({n}): " + "; ".join(i[:4]) + (f" (+{len(i) - 4})" if len(i) > 4 else ""))
         if unverified:
             print(f"\n{len(unverified)} unverified -> freshness **cannot be decided** (different from stale)")
             for u in unverified:

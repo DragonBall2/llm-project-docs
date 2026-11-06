@@ -2,11 +2,11 @@
 title: One test file, and how to know it would catch a break
 type: operation
 created: 2026-09-24
-updated: 2026-11-06
+updated: 2026-11-01
 sources:
   - code: tests/test_roundtrip.py
   - code: tests/scenarios.py
-verified_at: 58ced52
+verified_at: 16cda78
 ---
 
 # Testing
@@ -50,7 +50,7 @@ once-per-session marker files the test creates in the temp dir.
 ## Scenarios
 
 `tests/scenarios.py` drives the hooks exactly as Claude Code does, on throwaway
-repositories, through 88 cases (8 on diagrams): aliased, scripted, amended, reverted, cherry-picked,
+repositories, through 80 cases: aliased, scripted, amended, reverted, cherry-picked,
 rebased and merge commits; a commit someone else made; stash, checkout, pull; Korean
 paths and paths with spaces; ⚠️ in code fences, mid-sentence and in very long traps; 300-page wikis and
 2,000-commit histories; doc-site repositories; declared release commands and code commits piling up in a

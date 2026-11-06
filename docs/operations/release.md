@@ -2,18 +2,29 @@
 title: Releasing a version and getting it into the running plugin
 type: operation
 created: 2026-09-24
-updated: 2026-11-06
+updated: 2026-11-07
 sources:
   - code: .claude-plugin/marketplace.json
   - code: plugin/.claude-plugin/plugin.json
   - code: .github/workflows/test.yml
-verified_at: 58ced52
+verified_at: 16cda78
 ---
 
 # Release
 
 The plugin is installed from the marketplace cache, so **a source edit is not live** until
 it has been pushed and the plugin updated. This is the sequence that actually worked.
+
+## Features go through a branch first
+
+A push to `main` is a release: the official directory picks it up within minutes. So a
+new feature is built on a branch, run with `claude --plugin-dir <repo>/plugin` in real
+projects for a while, and merged only when the user says so. Fixes can go straight to
+`main` after the suites.
+
+> ⚠️ Before bumping `LINT_VERSION`, ask who the session hook will tell to re-copy and
+> what they gain. 1.13.0 bumped it for diagrams and told every existing wiki to re-copy
+> for a feature none of them used; it was withdrawn in 1.13.1.
 
 ## Steps
 
@@ -92,7 +103,7 @@ the public API works without it for checking CI.
 Korean output strings and identical logic, synced by hand. After any change to the linter,
 diff against it and port the change, including the `LINT_VERSION` bump: the hook on that
 repository compares the number, and a fork left behind would be told to re-copy the
-English original. `LINT_VERSION` 2 (1.6.0), 3 (1.7.0) and 4 (1.11.0) were ported with it; 5 (1.13.0, diagrams) is not yet. The fork stays string-only. In sync as of 2026-10-05 (equal line count, 365).
+English original. `LINT_VERSION` 2 (1.6.0), 3 (1.7.0) and 4 (1.11.0) were ported with it; the fork stays string-only. In sync as of 2026-10-05 (equal line count, 365).
 
 ## Repository git identity
 

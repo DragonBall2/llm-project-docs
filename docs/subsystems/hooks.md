@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-11-06
+updated: 2026-11-01
 sources:
   - code: plugin/hooks/
-verified_at: 58ced52
+verified_at: 16cda78
 ---
 
 # Hooks
@@ -124,14 +124,6 @@ code is touched, and usually it is not, so the ⚠️ lines come to the edit ins
 
 > ⚠️ `${CLAUDE_PLUGIN_ROOT}` is fine in the hooks manifest. It is exported to hook processes.
 > It is **not** exported to commands the agent runs via Bash; see [[vendored-linter]].
-
-## Diagrams behind their page
-
-The commit hook loads `lint.py` from the plugin and checks only the pages the commit
-edited: if one owns a diagram that no longer matches, it names the missing parts and says
-to tell the user and update only on request. A code-only commit does not repeat it. The
-session hook shows the user one line when `diagrams_behind` is non-empty; the count is
-part of `notice-state`, so it is said once per change.
 
 ## Seen live
 

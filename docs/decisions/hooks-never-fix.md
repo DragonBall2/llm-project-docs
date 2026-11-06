@@ -2,10 +2,10 @@
 title: Why the hooks only point, never edit, and never fail
 type: decision
 created: 2026-09-24
-updated: 2026-11-06
+updated: 2026-11-01
 sources:
   - code: plugin/hooks/
-verified_at: 58ced52
+verified_at: 16cda78
 ---
 
 # Decision: hooks point, they do not fix
@@ -41,8 +41,6 @@ covers them. Silence there meant the wiki could be corrected but never grow.
 So is the mention of pages edited without moving `verified_at` (1.9.0): once per commit,
 only for those pages. Silence there let a whole wiki read stale while its prose was
 current, which is the noise this rule exists to prevent, arrived at the other way.
-
-Diagrams (1.13.0) follow the same rule: the hooks say a drawing is behind its page, and the agent redraws only when the user asks.
 
 The first-commit offer (1.12.0) is the nearest the plugin comes to acting on its own,
 and it still does not: it tells the agent to *ask*, once per repository, and the

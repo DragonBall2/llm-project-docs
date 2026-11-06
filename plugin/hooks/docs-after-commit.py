@@ -266,35 +266,6 @@ def offer_due(root: Path) -> bool:
 GROW_RE = re.compile(r"^docs-mode:\s*grow\s*$", re.M)
 
 
-def diagrams_behind_for(root: Path, page_files: list[str]) -> list[tuple[str, str, list[str]]]:
-    """For the pages a commit touched: diagrams that no longer match the page."""
-    if not page_files:
-        return []
-    import importlib.util
-    try:
-        spec = importlib.util.spec_from_file_location(
-            "lint", Path(__file__).resolve().parent.parent / "scripts" / "lint.py")
-        lint = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(lint)
-    except Exception:
-        return []
-    out = []
-    for rel in page_files:
-        p = root / rel
-        if not p.exists():
-            continue
-        text = p.read_text(encoding="utf-8", errors="replace")
-        nodes, edges = lint.diagram_spec(text)
-        if not nodes:
-            continue
-        for dp in lint.diagram_paths(lint.frontmatter(text) or ""):
-            f = root / dp
-            res = lint.diagram_diff(f, nodes, edges) if f.exists() and f.suffix == ".drawio" else None
-            if res and res[0]:
-                out.append((p.stem, dp, res[0]))
-    return out
-
-
 def commit_parts(root: Path, sha: str) -> list[str]:
     """What to tell the agent about a commit this call made."""
     files = changed(root)
@@ -308,8 +279,7 @@ def commit_parts(root: Path, sha: str) -> list[str]:
 
     edited = edited_unverified(root, files)
 
-    if not hits and not new and not edited and not any(
-            f.startswith("docs/") and f.endswith(".md") for f in files) and not GROW_RE.search(
+    if not hits and not new and not edited and not GROW_RE.search(
             (root / "docs" / "CLAUDE.md").read_text(encoding="utf-8", errors="replace")
             if (root / "docs" / "CLAUDE.md").exists() else ""):
         return []
@@ -354,15 +324,6 @@ def commit_parts(root: Path, sha: str) -> list[str]:
             + "\nIf they add a feature, a subsystem or anything someone will need to find, "
               "give them a page or add them to an existing page's `sources`. If they are "
               "incidental, leave it.")
-    behind = diagrams_behind_for(root, [f for f in files if f.startswith("docs/") and f.endswith(".md")])
-    for page, dpath, issues in behind:
-        parts.append(
-            f"docs: [[{page}]]'s diagram `{dpath}` no longer matches the page: "
-            + "; ".join(issues[:4]) + (f" (+{len(issues) - 4})" if len(issues) > 4 else "")
-            + "\nThe diagram is for people. Tell the user in one line; update it only if they ask. "
-              "With a draw.io MCP server: load_diagram, edit the cells with ids n-<node>, keep "
-              "positions and styles, screenshot to check, export_diagram to the same path, and "
-              "let the user look before committing. Without one, say what needs changing.")
     if edited:
         parts.append(
             f"docs: commit {sha} edited {len(edited)} page(s) without moving `verified_at`: "
