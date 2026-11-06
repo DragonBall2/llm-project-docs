@@ -2,10 +2,10 @@
 title: lint.py: two history walks and the traps around them
 type: subsystem
 created: 2026-09-24
-updated: 2026-10-26
+updated: 2026-11-06
 sources:
   - code: plugin/scripts/lint.py
-verified_at: dc78a11
+verified_at: 58ced52
 ---
 
 # lint.py

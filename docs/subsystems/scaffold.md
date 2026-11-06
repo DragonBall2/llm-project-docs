@@ -2,11 +2,11 @@
 title: scaffold.py: what the setup writes into a target repo
 type: subsystem
 created: 2026-09-24
-updated: 2026-11-01
+updated: 2026-11-06
 sources:
   - code: plugin/scripts/scaffold.py
   - code: plugin/skills/project-docs-setup/SKILL.md
-verified_at: 16cda78
+verified_at: 58ced52
 ---
 
 # scaffold.py

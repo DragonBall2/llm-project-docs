@@ -2,10 +2,10 @@
 title: Three hooks: what each one sees and why they stay separate
 type: subsystem
 created: 2026-09-24
-updated: 2026-11-01
+updated: 2026-11-06
 sources:
   - code: plugin/hooks/
-verified_at: 16cda78
+verified_at: 58ced52
 ---
 
 # Hooks
